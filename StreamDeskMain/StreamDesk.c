@@ -77,6 +77,15 @@ static void setCursor(GtkWidget *widget, const char *cursorName)
 	gdk_window_set_cursor(window, cursor);
 }
 
+
+
+void user_function (GtkMenuItem *menuitem, gpointer user_data)
+{
+	GstElement *playbin = user_data;
+  stop_cb (NULL, playbin);
+  gtk_main_quit ();
+}						 
+
 static void button_press_event_cb (GtkWidget *widget, GdkEvent *event, GstElement *playbin)
 {
 	GdkEventButton *ev = (GdkEventButton *)event;
@@ -85,9 +94,19 @@ static void button_press_event_cb (GtkWidget *widget, GdkEvent *event, GstElemen
 	if (ev->button == 3) // right mouse button
 	{
 		GtkWidget *menu = gtk_menu_new();
-		GtkMenuItem *item = gtk_menu_item_new_with_label("Open URL...");
-		gtk_menu_attach(menu, item, 0, 0, 0, 0);
-		gtk_menu_popup(menu, NULL, NULL, NULL, NULL, NULL, NULL);
+		GtkWidget *item1 = gtk_menu_item_new_with_label("Open URL...");
+		GtkWidget *item2 = gtk_menu_item_new_with_label("Quit");
+    
+		gtk_menu_shell_append((GtkMenuShell *)menu, item1);
+    gtk_menu_shell_append((GtkMenuShell *)menu, item2);
+		gtk_widget_show_all(menu);
+		
+
+		//gtk_signal_connect_object (item1, "activate",	menuitem_response, "file.open"); 
+		g_signal_connect (G_OBJECT (item2), "activate", G_CALLBACK (user_function), playbin);
+		
+	
+		gtk_menu_popup((GtkMenu *)menu, NULL, NULL, NULL, NULL, 3, gtk_get_current_event_time());
 	}
 }
 
@@ -254,8 +273,8 @@ int main(int argc, char *argv[])
     return -1;
   }
 
-  //~ g_object_set (playbin, "uri", "file:/home/sergio/Documenti/video.mp4", NULL);
-  g_object_set (playbin, "uri", "file:/home/zac/progetti/sdlGstream/video.mp4", NULL);
+  g_object_set (playbin, "uri", "file:/home/sergio/Documenti/video.mp4", NULL);
+  //~ g_object_set (playbin, "uri", "file:/home/zac/progetti/sdlGstream/video.mp4", NULL);
 
   /* Create the GUI */
   create_ui (playbin);
