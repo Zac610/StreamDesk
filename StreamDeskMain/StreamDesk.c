@@ -82,6 +82,13 @@ static void button_press_event_cb (GtkWidget *widget, GdkEvent *event, GstElemen
 	GdkEventButton *ev = (GdkEventButton *)event;
 	if (ev->button == 1) // left mouse button
 		dragging = E_STARTING;
+	if (ev->button == 3) // right mouse button
+	{
+		GtkWidget *menu = gtk_menu_new();
+		GtkMenuItem *item = gtk_menu_item_new_with_label("Open URL...");
+		gtk_menu_attach(menu, item, 0, 0, 0, 0);
+		gtk_menu_popup(menu, NULL, NULL, NULL, NULL, NULL, NULL);
+	}
 }
 
 
