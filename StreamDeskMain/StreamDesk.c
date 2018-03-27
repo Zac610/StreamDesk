@@ -16,6 +16,7 @@
 #endif
 
 static const gchar APPNAME[] = "streamdesk";
+static const gchar CONFFILENAME = "streamList.ini";
 
 static const int RESIZEBORDER = 20;
 
@@ -276,14 +277,15 @@ int main(int argc, char *argv[])
     return -1;
   }
 
-	gboolean autostart;
-	gchar lastStream[255];
+	// Default values
+	gboolean autostart = FALSE;
+	gchar lastStream[255] = "";
 	// Access the configuration file
 	
 	g_autoptr(GKeyFile) key_file = g_key_file_new ();
 	//GKeyFile key_file;
 	gchar confFile[255];
-	sprintf(confFile, "%s/%s/settings.ini\n", g_get_user_config_dir(), APPNAME);
+	sprintf(confFile, "%s/%s/%s\n", g_get_user_config_dir(), APPNAME, CONFFILENAME);
 	gboolean keyFileFound = g_key_file_load_from_file(key_file, confFile, G_KEY_FILE_NONE, NULL);
 	if (keyFileFound)
 	{
@@ -292,12 +294,13 @@ int main(int argc, char *argv[])
 	}
 	else
 	{
-		autostart = FALSE;
-		strcpy(lastStream, "");
+		autostart = TRUE;
+		strcpy(lastStream, "file:/home/sergio/Documenti/video.mp4");
 	}
 
-  //~ g_object_set (playbin, "uri", "file:/home/sergio/Documenti/video.mp4", NULL);
-  g_object_set (playbin, "uri", "file:/home/zac/progetti/sdlGstream/video.mp4", NULL);
+  g_object_sdilnet (playbin, "uri", lastStream, NULL);
+  // g_object_set (playbin, "uri", "file:/home/zac/progetti/sdlGstream/video.mp4", NULL);
+	//~ g_object_set (playbin, "uri", "http://ubuntu.hbr1.com:19800/ambient.ogg", NULL);
 
   /* Create the GUI */
   create_ui (playbin);
