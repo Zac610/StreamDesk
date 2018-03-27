@@ -1,3 +1,4 @@
+// Application ID: com.github.zac610.streamdesk
 // gcc StreamDesk.c -o StreamDesk `pkg-config --cflags --libs gstreamer-video-1.0 gtk+-3.0 gstreamer-1.0`
 #include <string.h>
 
@@ -13,6 +14,8 @@
 #elif defined (GDK_WINDOWING_QUARTZ)
 #include <gdk/gdkquartz.h>
 #endif
+
+static const gchar APPNAME[] = "streamdesk";
 
 static const int RESIZEBORDER = 20;
 
@@ -273,8 +276,28 @@ int main(int argc, char *argv[])
     return -1;
   }
 
-  g_object_set (playbin, "uri", "file:/home/sergio/Documenti/video.mp4", NULL);
-  //~ g_object_set (playbin, "uri", "file:/home/zac/progetti/sdlGstream/video.mp4", NULL);
+	gboolean autostart;
+	gchar lastStream[255];
+	// Access the configuration file
+	
+	g_autoptr(GKeyFile) key_file = g_key_file_new ();
+	//GKeyFile key_file;
+	gchar confFile[255];
+	sprintf(confFile, "%s/%s/settings.ini\n", g_get_user_config_dir(), APPNAME);
+	gboolean keyFileFound = g_key_file_load_from_file(key_file, confFile, G_KEY_FILE_NONE, NULL);
+	if (keyFileFound)
+	{
+		autostart = g_key_file_get_boolean(key_file, "Global", "autostart", NULL);
+		strcpy(lastStream, g_key_file_get_string(key_file, "Global", "lastStream", NULL));
+	}
+	else
+	{
+		autostart = FALSE;
+		strcpy(lastStream, "");
+	}
+
+  //~ g_object_set (playbin, "uri", "file:/home/sergio/Documenti/video.mp4", NULL);
+  g_object_set (playbin, "uri", "file:/home/zac/progetti/sdlGstream/video.mp4", NULL);
 
   /* Create the GUI */
   create_ui (playbin);

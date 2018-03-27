@@ -5,16 +5,16 @@
 ## Debug
 ProjectName            :=StreamDeskMain
 ConfigurationName      :=Debug
-WorkspacePath          := "/home/sergio/Documenti/StreamDesk"
-ProjectPath            := "/home/sergio/Documenti/StreamDesk/StreamDeskMain"
+WorkspacePath          := "/home/zac/progetti/StreamDesk"
+ProjectPath            := "/home/zac/progetti/StreamDesk/StreamDeskMain"
 IntermediateDirectory  :=./Debug
 OutDir                 := $(IntermediateDirectory)
 CurrentFileName        :=
 CurrentFilePath        :=
 CurrentFileFullPath    :=
-User                   :=Sergio
-Date                   :=26/03/18
-CodeLitePath           :="/home/sergio/.codelite"
+User                   :=zac
+Date                   :=27/03/18
+CodeLitePath           :="/home/zac/.codelite"
 LinkerName             :=/usr/bin/g++
 SharedObjectLinkerName :=/usr/bin/g++ -shared -fPIC
 ObjectSuffix           :=.o
@@ -92,7 +92,7 @@ PreBuild:
 ## Objects
 ##
 $(IntermediateDirectory)/StreamDesk.c$(ObjectSuffix): StreamDesk.c $(IntermediateDirectory)/StreamDesk.c$(DependSuffix)
-	$(CC) $(SourceSwitch) "/home/sergio/Documenti/StreamDesk/StreamDeskMain/StreamDesk.c" $(CFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/StreamDesk.c$(ObjectSuffix) $(IncludePath)
+	$(CC) $(SourceSwitch) "/home/zac/progetti/StreamDesk/StreamDeskMain/StreamDesk.c" $(CFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/StreamDesk.c$(ObjectSuffix) $(IncludePath)
 $(IntermediateDirectory)/StreamDesk.c$(DependSuffix): StreamDesk.c
 	@$(CC) $(CFLAGS) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/StreamDesk.c$(ObjectSuffix) -MF$(IntermediateDirectory)/StreamDesk.c$(DependSuffix) -MM "StreamDesk.c"
 
