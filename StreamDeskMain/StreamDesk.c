@@ -16,7 +16,8 @@
 #endif
 
 static const gchar APPNAME[] = "streamdesk";
-static const gchar CONFFILENAME = "streamList.ini";
+static const gchar CONFFILENAME[] = "settings.ini";
+static const gchar STREAMFILENAME[] = "streamList.ini";
 
 static const int RESIZEBORDER = 20;
 
@@ -58,7 +59,18 @@ static void realize_cb (GtkWidget *widget, GstElement *playbin) {
 
 /* This function is called when the PLAY button is clicked */
 static void play_cb (GtkButton *button, GstElement *playbin) {
-  gst_element_set_state (playbin, GST_STATE_PLAYING);
+  GstStateChangeReturn ret = gst_element_set_state (playbin, GST_STATE_PLAYING);
+	if (ret == GST_STATE_CHANGE_FAILURE)
+	{
+		gchar *strval;
+		g_object_get(playbin, "uri", &strval, NULL);
+		
+		GtkWidget *dialog = gtk_message_dialog_new (NULL, GTK_DIALOG_MODAL, GTK_MESSAGE_WARNING, GTK_BUTTONS_CLOSE, "Stream not found:\n%s", strval);
+		gtk_dialog_run(GTK_DIALOG (dialog));
+		gtk_widget_destroy (dialog);
+		
+		g_free(strval);
+	}
 }
 
 /* This function is called when the PAUSE button is clicked */
@@ -259,7 +271,7 @@ static void eos_cb (GstBus *bus, GstMessage *msg, GstElement *playbin) {
 
 int main(int argc, char *argv[])
 {
-  GstStateChangeReturn ret;
+  //GstStateChangeReturn ret;
   GstBus *bus;
 	GstElement *playbin;
 
@@ -296,11 +308,11 @@ int main(int argc, char *argv[])
 	{
 		autostart = TRUE;
 		strcpy(lastStream, "file:/home/sergio/Documenti/video.mp4");
+		//strcpy(lastStream, "file:/home/zac/progetti/sdlGstream/video.mp4");
+		//strcpy(lastStream, "http://ubuntu.hbr1.com:19800/trance.ogg");
 	}
 
-  g_object_sdilnet (playbin, "uri", lastStream, NULL);
-  // g_object_set (playbin, "uri", "file:/home/zac/progetti/sdlGstream/video.mp4", NULL);
-	//~ g_object_set (playbin, "uri", "http://ubuntu.hbr1.com:19800/ambient.ogg", NULL);
+  g_object_set (playbin, "uri", lastStream, NULL);
 
   /* Create the GUI */
   create_ui (playbin);
@@ -312,14 +324,20 @@ int main(int argc, char *argv[])
   g_signal_connect (G_OBJECT (bus), "message::eos", (GCallback)eos_cb, playbin);
   gst_object_unref (bus);
 
-  /* Start playing */
-  ret = gst_element_set_state (playbin, GST_STATE_PLAYING);
-  if (ret == GST_STATE_CHANGE_FAILURE) {
-    g_printerr ("Unable to set the pipeline to the playing state.\n");
-    gst_object_unref (playbin);
-    return -1;
-  }
-
+//  /* Start playing */
+//  ret = gst_element_set_state (playbin, GST_STATE_PLAYING);
+//  if (ret == GST_STATE_CHANGE_FAILURE) {
+//    g_printerr ("Unable to set the pipeline to the playing state.\n");
+//    gst_object_unref (playbin);
+//    return -1;
+//  }
+//  
+	if (autostart)
+	{
+		playing = TRUE;
+		play_cb(NULL, playbin);
+	}
+	
   gtk_main ();
 
   /* Free resources */
