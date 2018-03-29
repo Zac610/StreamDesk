@@ -93,4 +93,7 @@
       </Completion>
     </Configuration>
   </Settings>
+  <VirtualDirectory Name="config">
+    <File Name="streamList.ini"/>
+  </VirtualDirectory>
 </CodeLite_Project>

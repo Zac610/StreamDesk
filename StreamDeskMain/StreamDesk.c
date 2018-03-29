@@ -21,7 +21,10 @@ static const gchar STREAMFILENAME[] = "streamList.ini";
 
 static const int RESIZEBORDER = 20;
 
-int playing = 1;
+GKeyFile *gKeyFileIni;
+gboolean gIsPlaying;
+
+
 enum DragState
 {
 	E_NONE,
@@ -78,11 +81,6 @@ static void pause_cb (GtkButton *button, GstElement *playbin) {
   gst_element_set_state (playbin, GST_STATE_PAUSED);
 }
 
-/* This function is called when the STOP button is clicked */
-static void stop_cb (GtkButton *button, GstElement *playbin) {
-  gst_element_set_state (playbin, GST_STATE_READY);
-}
-
 
 static void setCursor(GtkWidget *widget, const char *cursorName)
 {
@@ -94,13 +92,34 @@ static void setCursor(GtkWidget *widget, const char *cursorName)
 }
 
 
+/* This function is called when the main window is closed */
+static void cbCloseApp (GtkWidget *widget, GdkEvent *event, GstElement *playbin)
+{
+	// Save app state
+	g_key_file_set_boolean(gKeyFileIni, "Global", "autostart", gIsPlaying);
+
+	gchar *strval;
+	g_object_get(playbin, "uri", &strval, NULL);
+	g_key_file_set_string(gKeyFileIni, "Global", "lastStream", strval);
+	g_free(strval);
+
+	gchar confFile[255];
+	sprintf(confFile, "%s/%s/%s\n", g_get_user_config_dir(), APPNAME, CONFFILENAME);
+	
+	g_key_file_save_to_file (gKeyFileIni, confFile, NULL);
+	
+	g_key_file_free(gKeyFileIni);
+ 
+  gst_element_set_state (playbin, GST_STATE_READY);
+  gtk_main_quit ();
+}
+
 
 void user_function (GtkMenuItem *menuitem, gpointer user_data)
 {
-	GstElement *playbin = user_data;
-  stop_cb (NULL, playbin);
-  gtk_main_quit ();
+	cbCloseApp(NULL, NULL, user_data);
 }						 
+
 
 static void button_press_event_cb (GtkWidget *widget, GdkEvent *event, GstElement *playbin)
 {
@@ -186,14 +205,6 @@ static void motion_event_cb (GtkWidget *widget, GdkEvent *event, GstElement *pla
 }
 
 
-/* This function is called when the main window is closed */
-static void delete_event_cb (GtkWidget *widget, GdkEvent *event, GstElement *playbin)
-{
-  stop_cb (NULL, playbin);
-  gtk_main_quit ();
-}
-
-
 static void key_press_event_cb (GtkWidget *widget, GdkEvent *event, GstElement *playbin)
 {
 	GdkEventKey *ev = (GdkEventKey *)event;
@@ -201,18 +212,18 @@ static void key_press_event_cb (GtkWidget *widget, GdkEvent *event, GstElement *
 	switch (ev->keyval)
 	{
 		case GDK_KEY_Escape:
-			delete_event_cb(widget, event, playbin);
+			cbCloseApp(widget, event, playbin);
 			break;
 		case GDK_KEY_space:
-			if (playing)
+			if (gIsPlaying)
 			{
-				playing = 0;
+				gIsPlaying = FALSE;
 				pause_cb(0, playbin);
 			}
 			else
 			{
 				play_cb(0, playbin);
-				playing = 1;
+				gIsPlaying = TRUE;
 			}
 			break;
 	}
@@ -226,7 +237,7 @@ static void create_ui (GstElement *playbin)
   GtkWidget *video_window; /* The drawing area where the video will be shown */
   //~ main_window = gtk_window_new (GTK_WINDOW_POPUP);
   main_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-  g_signal_connect (G_OBJECT (main_window), "delete-event", G_CALLBACK (delete_event_cb), playbin);
+  g_signal_connect (G_OBJECT (main_window), "delete-event", G_CALLBACK (cbCloseApp), playbin);
   g_signal_connect (G_OBJECT (main_window), "button-press-event", G_CALLBACK (button_press_event_cb), playbin);
   g_signal_connect (G_OBJECT (main_window), "button-release-event", G_CALLBACK (button_release_event_cb), playbin);
   g_signal_connect (G_OBJECT (main_window), "key-press-event", G_CALLBACK (key_press_event_cb), playbin);
@@ -261,6 +272,7 @@ static void error_cb (GstBus *bus, GstMessage *msg, GstElement *playbin) {
   gst_element_set_state (playbin, GST_STATE_READY);
 }
 
+
 /* This function is called when an End-Of-Stream message is posted on the bus.
  * We just set the pipeline to READY (which stops playback) */
 static void eos_cb (GstBus *bus, GstMessage *msg, GstElement *playbin) {
@@ -290,29 +302,26 @@ int main(int argc, char *argv[])
   }
 
 	// Default values
-	gboolean autostart = FALSE;
 	gchar lastStream[255] = "";
 	// Access the configuration file
 	
-	g_autoptr(GKeyFile) key_file = g_key_file_new ();
+	gKeyFileIni = g_key_file_new ();
 	//GKeyFile key_file;
 	gchar confFile[255];
 	sprintf(confFile, "%s/%s/%s\n", g_get_user_config_dir(), APPNAME, CONFFILENAME);
-	gboolean keyFileFound = g_key_file_load_from_file(key_file, confFile, G_KEY_FILE_NONE, NULL);
+	gboolean keyFileFound = g_key_file_load_from_file(gKeyFileIni, confFile, G_KEY_FILE_NONE, NULL);
 	if (keyFileFound)
 	{
-		autostart = g_key_file_get_boolean(key_file, "Global", "autostart", NULL);
-		strcpy(lastStream, g_key_file_get_string(key_file, "Global", "lastStream", NULL));
+		gIsPlaying = g_key_file_get_boolean(gKeyFileIni, "Global", "autostart", NULL);
+		strcpy(lastStream, g_key_file_get_string(gKeyFileIni, "Global", "lastStream", NULL));
 	}
 	else
 	{
-		autostart = TRUE;
-		strcpy(lastStream, "file:/home/sergio/Documenti/video.mp4");
-		//strcpy(lastStream, "file:/home/zac/progetti/sdlGstream/video.mp4");
+		gIsPlaying = TRUE;
+//		strcpy(lastStream, "file:/home/sergio/Documenti/video.mp4");
+		strcpy(lastStream, "file:/home/zac/progetti/sdlGstream/video.mp4");
 		//strcpy(lastStream, "http://ubuntu.hbr1.com:19800/trance.ogg");
 	}
-
-  g_object_set (playbin, "uri", lastStream, NULL);
 
   /* Create the GUI */
   create_ui (playbin);
@@ -324,19 +333,9 @@ int main(int argc, char *argv[])
   g_signal_connect (G_OBJECT (bus), "message::eos", (GCallback)eos_cb, playbin);
   gst_object_unref (bus);
 
-//  /* Start playing */
-//  ret = gst_element_set_state (playbin, GST_STATE_PLAYING);
-//  if (ret == GST_STATE_CHANGE_FAILURE) {
-//    g_printerr ("Unable to set the pipeline to the playing state.\n");
-//    gst_object_unref (playbin);
-//    return -1;
-//  }
-//  
-	if (autostart)
-	{
-		playing = TRUE;
+  g_object_set (playbin, "uri", lastStream, NULL);
+	if (gIsPlaying)
 		play_cb(NULL, playbin);
-	}
 	
   gtk_main ();
 
