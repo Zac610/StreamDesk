@@ -21,9 +21,7 @@ static const gchar STREAMFILENAME[] = "streamList.ini";
 
 static const int RESIZEBORDER = 20;
 
-GKeyFile *gKeyFileIni;
 gboolean gIsPlaying;
-
 
 enum DragState
 {
@@ -68,11 +66,9 @@ static void play_cb (GtkButton *button, GstElement *playbin) {
 		gchar *strval;
 		g_object_get(playbin, "uri", &strval, NULL);
 		
-		GtkWidget *dialog = gtk_message_dialog_new (NULL, GTK_DIALOG_MODAL, GTK_MESSAGE_WARNING, GTK_BUTTONS_CLOSE, "Stream not found:\n%s", strval);
+		g_autoptr(GtkWidget) dialog = gtk_message_dialog_new (NULL, GTK_DIALOG_MODAL, GTK_MESSAGE_WARNING, GTK_BUTTONS_CLOSE, "Stream not found:\n%s", strval);
 		gtk_dialog_run(GTK_DIALOG (dialog));
 		gtk_widget_destroy (dialog);
-		
-		g_free(strval);
 	}
 }
 
@@ -96,26 +92,36 @@ static void setCursor(GtkWidget *widget, const char *cursorName)
 static void cbCloseApp (GtkWidget *widget, GdkEvent *event, GstElement *playbin)
 {
 	// Save app state
-	g_key_file_set_boolean(gKeyFileIni, "Global", "autostart", gIsPlaying);
+	g_autoptr(GKeyFile) keyFileIni = g_key_file_new ();
+	g_key_file_set_boolean(keyFileIni, "Global", "autostart", gIsPlaying);
 
 	gchar *strval;
 	g_object_get(playbin, "uri", &strval, NULL);
-	g_key_file_set_string(gKeyFileIni, "Global", "lastStream", strval);
+	g_key_file_set_string(keyFileIni, "Global", "lastStream", strval);
 	g_free(strval);
 
 	gchar confFile[255];
-	sprintf(confFile, "%s/%s/%s\n", g_get_user_config_dir(), APPNAME, CONFFILENAME);
-	
-	g_key_file_save_to_file (gKeyFileIni, confFile, NULL);
-	
-	g_key_file_free(gKeyFileIni);
- 
+	sprintf(confFile, "%s/%s/%s", g_get_user_config_dir(), APPNAME, CONFFILENAME);
+	g_key_file_save_to_file (keyFileIni, confFile, NULL);
+
   gst_element_set_state (playbin, GST_STATE_READY);
   gtk_main_quit ();
 }
 
 
-void user_function (GtkMenuItem *menuitem, gpointer user_data)
+void cbOpenUrl (GtkMenuItem *menuitem, gpointer user_data)
+{
+	g_autoptr(GtkWidget) dialog = gtk_dialog_new_with_buttons("Open URL", NULL, GTK_DIALOG_MODAL,
+		"Open", GTK_RESPONSE_ACCEPT, "Cancel", GTK_RESPONSE_CANCEL, NULL);
+	GtkResponseType response = gtk_dialog_run(GTK_DIALOG (dialog));
+	g_printf("<<< %d\n", response);
+	//gtk_widget_destroy (dialog); needed?
+	
+	g_autoptr(GtkWidget) entry = gtk_entry_new ();
+}						 
+
+
+void cbCloseFromMenu (GtkMenuItem *menuitem, gpointer user_data)
 {
 	cbCloseApp(NULL, NULL, user_data);
 }						 
@@ -138,7 +144,8 @@ static void button_press_event_cb (GtkWidget *widget, GdkEvent *event, GstElemen
 		
 
 		//gtk_signal_connect_object (item1, "activate",	menuitem_response, "file.open"); 
-		g_signal_connect (G_OBJECT (item2), "activate", G_CALLBACK (user_function), playbin);
+		g_signal_connect (G_OBJECT (item1), "activate", G_CALLBACK (cbOpenUrl), playbin);
+		g_signal_connect (G_OBJECT (item2), "activate", G_CALLBACK (cbCloseFromMenu), playbin);
 		
 	
 		gtk_menu_popup((GtkMenu *)menu, NULL, NULL, NULL, NULL, 3, gtk_get_current_event_time());
@@ -305,18 +312,25 @@ int main(int argc, char *argv[])
 	gchar lastStream[255] = "";
 	// Access the configuration file
 	
-	gKeyFileIni = g_key_file_new ();
+	GKeyFile *keyFileIni = g_key_file_new ();
 	//GKeyFile key_file;
 	gchar confFile[255];
-	sprintf(confFile, "%s/%s/%s\n", g_get_user_config_dir(), APPNAME, CONFFILENAME);
-	gboolean keyFileFound = g_key_file_load_from_file(gKeyFileIni, confFile, G_KEY_FILE_NONE, NULL);
+	sprintf(confFile, "%s/%s/%s", g_get_user_config_dir(), APPNAME, CONFFILENAME);
+	gboolean keyFileFound = g_key_file_load_from_file(keyFileIni, confFile, G_KEY_FILE_NONE, NULL);
 	if (keyFileFound)
 	{
-		gIsPlaying = g_key_file_get_boolean(gKeyFileIni, "Global", "autostart", NULL);
-		strcpy(lastStream, g_key_file_get_string(gKeyFileIni, "Global", "lastStream", NULL));
+		gIsPlaying = g_key_file_get_boolean(keyFileIni, "Global", "autostart", NULL);
+		gchar *ret = g_key_file_get_string(keyFileIni, "Global", "lastStream", NULL);
+		if (ret != NULL)
+			strcpy(lastStream, ret);
 	}
 	else
 	{
+		sprintf(confFile, "%s/%s", g_get_user_config_dir(), APPNAME);
+		g_autoptr(GFile) gFile;
+		gFile = g_file_new_for_path (confFile);
+		g_file_make_directory (gFile, NULL, NULL);
+
 		gIsPlaying = TRUE;
 //		strcpy(lastStream, "file:/home/sergio/Documenti/video.mp4");
 		strcpy(lastStream, "file:/home/zac/progetti/sdlGstream/video.mp4");
