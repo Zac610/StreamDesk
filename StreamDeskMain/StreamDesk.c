@@ -35,6 +35,7 @@ int xwininitial, ywininitial;
 int wwininitial = 800;
 int hwininitial = 600;
 int xinitial, yinitial;
+GtkWindow *main_window;
 
 /* This function is called when the GUI toolkit creates the physical window that will hold the video.
  * At this point we can retrieve its handler (which has a different meaning depending on the windowing system)
@@ -66,7 +67,7 @@ static void play_cb (GtkButton *button, GstElement *playbin) {
 		gchar *strval;
 		g_object_get(playbin, "uri", &strval, NULL);
 		
-		g_autoptr(GtkWidget) dialog = gtk_message_dialog_new (NULL, GTK_DIALOG_MODAL, GTK_MESSAGE_WARNING, GTK_BUTTONS_CLOSE, "Stream not found:\n%s", strval);
+		GtkWidget* dialog = gtk_message_dialog_new (main_window, GTK_DIALOG_MODAL, GTK_MESSAGE_WARNING, GTK_BUTTONS_CLOSE, "Stream not found:\n%s", strval);
 		gtk_dialog_run(GTK_DIALOG (dialog));
 		gtk_widget_destroy (dialog);
 	}
@@ -111,13 +112,23 @@ static void cbCloseApp (GtkWidget *widget, GdkEvent *event, GstElement *playbin)
 
 void cbOpenUrl (GtkMenuItem *menuitem, gpointer user_data)
 {
-	g_autoptr(GtkWidget) dialog = gtk_dialog_new_with_buttons("Open URL", NULL, GTK_DIALOG_MODAL,
+	GtkWidget * dialog = gtk_dialog_new_with_buttons("Open URL", main_window, GTK_DIALOG_MODAL,
 		"Open", GTK_RESPONSE_ACCEPT, "Cancel", GTK_RESPONSE_CANCEL, NULL);
+		
+ GtkWidget *content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
+
+
+	GtkWidget * entry = gtk_entry_new ();
+//	  gtk_container_add (dialog, entry);
+gtk_container_add (GTK_CONTAINER (content_area), entry);
+		
+//		gtk_container_add(GTK_CONTAINER(gtk_dialog_get_content_area(GTK_DIALOG(window))), scrolled_window);
+		
+		 gtk_widget_show_all(dialog);
 	GtkResponseType response = gtk_dialog_run(GTK_DIALOG (dialog));
-	g_printf("<<< %d\n", response);
-	//gtk_widget_destroy (dialog); needed?
+	g_print("<<< %d\n", response);
+	gtk_widget_destroy (dialog);
 	
-	g_autoptr(GtkWidget) entry = gtk_entry_new ();
 }						 
 
 
@@ -240,10 +251,9 @@ static void key_press_event_cb (GtkWidget *widget, GdkEvent *event, GstElement *
 /* This creates all the GTK+ widgets that compose our application, and registers the callbacks */
 static void create_ui (GstElement *playbin)
 {
-  GtkWidget *main_window;
   GtkWidget *video_window; /* The drawing area where the video will be shown */
   //~ main_window = gtk_window_new (GTK_WINDOW_POPUP);
-  main_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+  main_window = (GtkWindow *)gtk_window_new (GTK_WINDOW_TOPLEVEL);
   g_signal_connect (G_OBJECT (main_window), "delete-event", G_CALLBACK (cbCloseApp), playbin);
   g_signal_connect (G_OBJECT (main_window), "button-press-event", G_CALLBACK (button_press_event_cb), playbin);
   g_signal_connect (G_OBJECT (main_window), "button-release-event", G_CALLBACK (button_release_event_cb), playbin);
@@ -258,8 +268,8 @@ static void create_ui (GstElement *playbin)
   gtk_container_add (GTK_CONTAINER (main_window), video_window);
 
   gtk_window_set_default_size (GTK_WINDOW (main_window), 640, 480);
-	gtk_window_set_decorated((GtkWindow*)main_window, FALSE);
-  gtk_widget_show_all (main_window);
+	gtk_window_set_decorated(main_window, FALSE);
+  gtk_widget_show_all ((GtkWidget *)main_window);
 }
 
 
