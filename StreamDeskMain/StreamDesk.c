@@ -58,6 +58,7 @@ static void realize_cb (GtkWidget *widget, GstElement *playbin) {
   gst_video_overlay_set_window_handle (GST_VIDEO_OVERLAY (playbin), window_handle);
 }
 
+
 /* This function is called when the PLAY button is clicked */
 static void play_cb (GtkButton *button, GstElement *playbin) {
   GstStateChangeReturn ret = gst_element_set_state (playbin, GST_STATE_PLAYING);
@@ -72,8 +73,10 @@ static void play_cb (GtkButton *button, GstElement *playbin) {
 	}
 }
 
+
 /* This function is called when the PAUSE button is clicked */
-static void pause_cb (GtkButton *button, GstElement *playbin) {
+static void pause_cb (GtkButton *button, GstElement *playbin)
+{
   gst_element_set_state (playbin, GST_STATE_PAUSED);
 }
 
@@ -124,16 +127,13 @@ void cbOpenUrl (GtkMenuItem *menuitem, gpointer user_data)
 
 
 	GtkWidget * entry = gtk_entry_new ();
-//	  gtk_container_add (dialog, entry);
 gtk_container_add (GTK_CONTAINER (content_area), entry);
+	gtk_widget_show_all(dialog);
 		
-//		gtk_container_add(GTK_CONTAINER(gtk_dialog_get_content_area(GTK_DIALOG(window))), scrolled_window);
-		
-		 gtk_widget_show_all(dialog);
 	GtkResponseType response = gtk_dialog_run(GTK_DIALOG (dialog));
-	g_print("<<< %d\n", response);
+	if (response == GTK_RESPONSE_ACCEPT)
+		g_print("<<< %s\n", gtk_entry_get_text(GTK_ENTRY(entry)));
 	gtk_widget_destroy (dialog);
-	
 }						 
 
 
@@ -158,13 +158,10 @@ static void button_press_event_cb (GtkWidget *widget, GdkEvent *event, GstElemen
     gtk_menu_shell_append((GtkMenuShell *)menu, item2);
 		gtk_widget_show_all(menu);
 		
-
-		//gtk_signal_connect_object (item1, "activate",	menuitem_response, "file.open"); 
 		g_signal_connect (G_OBJECT (item1), "activate", G_CALLBACK (cbOpenUrl), playbin);
 		g_signal_connect (G_OBJECT (item2), "activate", G_CALLBACK (cbCloseFromMenu), playbin);
 		
-	
-		gtk_menu_popup((GtkMenu *)menu, NULL, NULL, NULL, NULL, 3, gtk_get_current_event_time());
+		gtk_menu_popup((GtkMenu *)menu, NULL, NULL, NULL, menu, 3, gtk_get_current_event_time());
 	}
 }
 
@@ -282,7 +279,8 @@ static void create_ui (GstElement *playbin)
 
 
 /* This function is called when an error message is posted on the bus */
-static void error_cb (GstBus *bus, GstMessage *msg, GstElement *playbin) {
+static void error_cb (GstBus *bus, GstMessage *msg, GstElement *playbin)
+{
   GError *err;
   gchar *debug_info;
 
@@ -300,7 +298,8 @@ static void error_cb (GstBus *bus, GstMessage *msg, GstElement *playbin) {
 
 /* This function is called when an End-Of-Stream message is posted on the bus.
  * We just set the pipeline to READY (which stops playback) */
-static void eos_cb (GstBus *bus, GstMessage *msg, GstElement *playbin) {
+static void eos_cb (GstBus *bus, GstMessage *msg, GstElement *playbin)
+{
   g_print ("End-Of-Stream reached.\n");
   gst_element_set_state (playbin, GST_STATE_READY);
 }
@@ -308,7 +307,6 @@ static void eos_cb (GstBus *bus, GstMessage *msg, GstElement *playbin) {
 
 int main(int argc, char *argv[])
 {
-  //GstStateChangeReturn ret;
   GstBus *bus;
 	GstElement *playbin;
 
