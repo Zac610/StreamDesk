@@ -31,10 +31,9 @@ enum DragState
 	E_RESIZING
 } dragging = E_NONE;
 
-int xwininitial, ywininitial;
-int wwininitial = 800;
-int hwininitial = 600;
-int xinitial, yinitial;
+gint xwininitial, ywininitial;
+gint wwininitial, hwininitial;
+gint xinitial, yinitial;
 GtkWindow *main_window;
 
 /* This function is called when the GUI toolkit creates the physical window that will hold the video.
@@ -100,6 +99,12 @@ static void cbCloseApp (GtkWidget *widget, GdkEvent *event, GstElement *playbin)
 	g_object_get(playbin, "uri", &strval, NULL);
 	g_key_file_set_string(keyFileIni, "Global", "lastStream", strval);
 	g_free(strval);
+
+	g_key_file_set_integer(keyFileIni, "Global", "initialX", xwininitial);
+	g_key_file_set_integer(keyFileIni, "Global", "initialY", ywininitial);
+
+	g_key_file_set_integer(keyFileIni, "Global", "initialW", wwininitial);
+	g_key_file_set_integer(keyFileIni, "Global", "initialH", hwininitial);
 
 	gchar confFile[255];
 	sprintf(confFile, "%s/%s/%s", g_get_user_config_dir(), APPNAME, CONFFILENAME);
@@ -267,9 +272,12 @@ static void create_ui (GstElement *playbin)
 
   gtk_container_add (GTK_CONTAINER (main_window), video_window);
 
-  gtk_window_set_default_size (GTK_WINDOW (main_window), 640, 480);
+  gtk_window_set_default_size (GTK_WINDOW (main_window), wwininitial, hwininitial);
+
 	gtk_window_set_decorated(main_window, FALSE);
   gtk_widget_show_all ((GtkWidget *)main_window);
+
+	gtk_window_move(main_window, xwininitial, ywininitial);
 }
 
 
@@ -323,7 +331,6 @@ int main(int argc, char *argv[])
 	// Access the configuration file
 	
 	GKeyFile *keyFileIni = g_key_file_new ();
-	//GKeyFile key_file;
 	gchar confFile[255];
 	sprintf(confFile, "%s/%s/%s", g_get_user_config_dir(), APPNAME, CONFFILENAME);
 	gboolean keyFileFound = g_key_file_load_from_file(keyFileIni, confFile, G_KEY_FILE_NONE, NULL);
@@ -333,6 +340,10 @@ int main(int argc, char *argv[])
 		gchar *ret = g_key_file_get_string(keyFileIni, "Global", "lastStream", NULL);
 		if (ret != NULL)
 			strcpy(lastStream, ret);
+		xwininitial = g_key_file_get_integer(keyFileIni, "Global", "initialX", NULL);
+		ywininitial = g_key_file_get_integer(keyFileIni, "Global", "initialY", NULL);
+		wwininitial = g_key_file_get_integer(keyFileIni, "Global", "initialW", NULL);
+		hwininitial = g_key_file_get_integer(keyFileIni, "Global", "initialH", NULL);
 	}
 	else
 	{
@@ -343,8 +354,13 @@ int main(int argc, char *argv[])
 
 		gIsPlaying = TRUE;
 //		strcpy(lastStream, "file:/home/sergio/Documenti/video.mp4");
-		strcpy(lastStream, "file:/home/zac/progetti/sdlGstream/video.mp4");
-		//strcpy(lastStream, "http://ubuntu.hbr1.com:19800/trance.ogg");
+//		strcpy(lastStream, "file:/home/zac/progetti/sdlGstream/video.mp4");
+		strcpy(lastStream, "http://ubuntu.hbr1.com:19800/trance.ogg");
+
+		xwininitial = 0;
+		ywininitial = 0;
+		wwininitial = 320;
+		hwininitial = 200;
 	}
 
   /* Create the GUI */
