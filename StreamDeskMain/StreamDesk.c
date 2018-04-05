@@ -104,7 +104,7 @@ static void cbCloseApp (GtkWidget *widget, GdkEvent *event, GstElement *playbin)
 	g_key_file_set_string(keyFileIni, "Global", "lastStream", lastStream);
 //	g_free(strval);
 
-	GdkWindow *window = gtk_widget_get_window (widget);
+	GdkWindow *window = gtk_widget_get_window ((GtkWidget *)main_window);
 	gdk_window_get_origin(window, &xwininitial, &ywininitial);
 	g_key_file_set_integer(keyFileIni, "Global", "initialX", xwininitial);
 	g_key_file_set_integer(keyFileIni, "Global", "initialY", ywininitial);
@@ -224,17 +224,23 @@ static void motion_event_cb (GtkWidget *widget, GdkEvent *event, GstElement *pla
 		}
 
 		setCursor(widget, cursorName);
+		
+		// optimization
+		xwininitial-=xinitial;
+		ywininitial-=yinitial;
+		wwininitial-=xinitial;
+		hwininitial-=yinitial;
 	}
 
 	if (dragging == E_DRAGGING)
 	{
 		GdkWindow *window = gtk_widget_get_window (widget);
-		gdk_window_move(window, xwininitial-xinitial+(int)ev->x_root, ywininitial-yinitial+(int)ev->y_root);
+		gdk_window_move(window, xwininitial+(int)ev->x_root, ywininitial+(int)ev->y_root);
 	}
 	else if (dragging == E_RESIZING)
 	{
 		GdkWindow *window = gtk_widget_get_window (widget);
-		gdk_window_resize(window, wwininitial-xinitial+(int)ev->x_root, hwininitial-yinitial+(int)ev->y_root);
+		gdk_window_resize(window, wwininitial+(int)ev->x_root, hwininitial+(int)ev->y_root);
 	}
 }
 
@@ -355,6 +361,15 @@ int main(int argc, char *argv[])
 		ywininitial = g_key_file_get_integer(keyFileIni, "Global", "initialY", NULL);
 		wwininitial = g_key_file_get_integer(keyFileIni, "Global", "initialW", NULL);
 		hwininitial = g_key_file_get_integer(keyFileIni, "Global", "initialH", NULL);
+		
+//		if (xwininitial < 0) xwininitial = 0;
+//		if (ywininitial < 0) ywininitial = 0;
+//		if (xwininitial > 10000) xwininitial = 10000;
+//		if (ywininitial > 10000) ywininitial = 10000;
+//		if (wwininitial <=0) wwininitial = 100;
+//		if (hwininitial <=0) hwininitial = 100;
+//		if (wwininitial > 10000) wwininitial = 100;
+//		if (hwininitial > 10000) hwininitial = 100;
 	}
 	else
 	{
