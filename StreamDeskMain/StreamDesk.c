@@ -31,6 +31,7 @@ enum DragState
 	E_RESIZING
 } dragging = E_NONE;
 
+gchar lastStream[255] = "";
 gint xwininitial, ywininitial;
 gint wwininitial, hwininitial;
 gint xinitial, yinitial;
@@ -98,10 +99,10 @@ static void cbCloseApp (GtkWidget *widget, GdkEvent *event, GstElement *playbin)
 	g_autoptr(GKeyFile) keyFileIni = g_key_file_new ();
 	g_key_file_set_boolean(keyFileIni, "Global", "autostart", gIsPlaying);
 
-	gchar *strval;
-	g_object_get(playbin, "uri", &strval, NULL);
-	g_key_file_set_string(keyFileIni, "Global", "lastStream", strval);
-	g_free(strval);
+//	gchar *strval;
+//	g_object_get(playbin, "uri", &strval, NULL);
+	g_key_file_set_string(keyFileIni, "Global", "lastStream", lastStream);
+//	g_free(strval);
 
 	GdkWindow *window = gtk_widget_get_window (widget);
 	gdk_window_get_origin(window, &xwininitial, &ywininitial);
@@ -127,16 +128,25 @@ void cbOpenUrl (GtkMenuItem *menuitem, gpointer user_data)
 	GtkWidget * dialog = gtk_dialog_new_with_buttons("Open URL", main_window, GTK_DIALOG_MODAL,
 		"Open", GTK_RESPONSE_ACCEPT, "Cancel", GTK_RESPONSE_CANCEL, NULL);
 		
- GtkWidget *content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
-
-
+	GtkWidget *content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
 	GtkWidget * entry = gtk_entry_new ();
-gtk_container_add (GTK_CONTAINER (content_area), entry);
+	gtk_container_add (GTK_CONTAINER (content_area), entry);
 	gtk_widget_show_all(dialog);
 		
 	GtkResponseType response = gtk_dialog_run(GTK_DIALOG (dialog));
 	if (response == GTK_RESPONSE_ACCEPT)
+	{
+		GstElement *playbin = (GstElement *)user_data;
 		g_print("<<< %s\n", gtk_entry_get_text(GTK_ENTRY(entry)));
+		if (gIsPlaying)
+			gst_element_set_state (playbin, GST_STATE_READY);
+		
+		strcpy(lastStream, gtk_entry_get_text(GTK_ENTRY(entry)));
+
+		g_object_set (playbin, "uri", lastStream, NULL);
+		if (gIsPlaying)
+			play_cb(NULL, playbin);			
+	}
 	gtk_widget_destroy (dialog);
 }						 
 
@@ -329,7 +339,6 @@ int main(int argc, char *argv[])
   }
 
 	// Default values
-	gchar lastStream[255] = "";
 	// Access the configuration file
 	
 	GKeyFile *keyFileIni = g_key_file_new ();
