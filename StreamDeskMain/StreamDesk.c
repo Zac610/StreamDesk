@@ -103,9 +103,13 @@ static void cbCloseApp (GtkWidget *widget, GdkEvent *event, GstElement *playbin)
 	g_key_file_set_string(keyFileIni, "Global", "lastStream", strval);
 	g_free(strval);
 
+	GdkWindow *window = gtk_widget_get_window (widget);
+	gdk_window_get_origin(window, &xwininitial, &ywininitial);
 	g_key_file_set_integer(keyFileIni, "Global", "initialX", xwininitial);
 	g_key_file_set_integer(keyFileIni, "Global", "initialY", ywininitial);
 
+	wwininitial = gdk_window_get_width(window);
+	hwininitial = gdk_window_get_height(window);
 	g_key_file_set_integer(keyFileIni, "Global", "initialW", wwininitial);
 	g_key_file_set_integer(keyFileIni, "Global", "initialH", hwininitial);
 
