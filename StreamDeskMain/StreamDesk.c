@@ -41,29 +41,32 @@ GtkWidget *menu;
 /* This function is called when the GUI toolkit creates the physical window that will hold the video.
  * At this point we can retrieve its handler (which has a different meaning depending on the windowing system)
  * and pass it to GStreamer through the VideoOverlay interface. */
-static void realize_cb (GtkWidget *widget, GstElement *playbin) {
-  GdkWindow *window = gtk_widget_get_window (widget);
-  guintptr window_handle;
+static void realize_cb (GtkWidget *widget, GstElement *playbin)
+{
+	GdkWindow *window = gtk_widget_get_window (widget);
+	guintptr window_handle;
 
-  if (!gdk_window_ensure_native (window))
-    g_error ("Couldn't create native window needed for GstVideoOverlay!");
+	if (!gdk_window_ensure_native (window))
+		g_error ("Couldn't create native window needed for GstVideoOverlay!");
 
-  /* Retrieve window handler from GDK */
+	// Retrieve window handler from GDK
 #if defined (GDK_WINDOWING_WIN32)
-  window_handle = (guintptr)GDK_WINDOW_HWND (window);
+	window_handle = (guintptr)GDK_WINDOW_HWND (window);
 #elif defined (GDK_WINDOWING_QUARTZ)
-  window_handle = gdk_quartz_window_get_nsview (window);
+	window_handle = gdk_quartz_window_get_nsview (window);
 #elif defined (GDK_WINDOWING_X11)
-  window_handle = GDK_WINDOW_XID (window);
+	window_handle = GDK_WINDOW_XID (window);
 #endif
-  /* Pass it to playbin, which implements VideoOverlay and will forward it to the video sink */
-  gst_video_overlay_set_window_handle (GST_VIDEO_OVERLAY (playbin), window_handle);
+	
+	// Pass it to playbin, which implements VideoOverlay and will forward it to the video sink
+	gst_video_overlay_set_window_handle (GST_VIDEO_OVERLAY (playbin), window_handle);
 }
 
 
-/* This function is called when the PLAY button is clicked */
-static void play_cb (GtkButton *button, GstElement *playbin) {
-  GstStateChangeReturn ret = gst_element_set_state (playbin, GST_STATE_PLAYING);
+// This function is called when the PLAY button is clicked
+static void play_cb (GtkButton *button, GstElement *playbin)
+{
+	GstStateChangeReturn ret = gst_element_set_state (playbin, GST_STATE_PLAYING);
 	if (ret == GST_STATE_CHANGE_FAILURE)
 	{
 		gchar *strval;
@@ -76,10 +79,10 @@ static void play_cb (GtkButton *button, GstElement *playbin) {
 }
 
 
-/* This function is called when the PAUSE button is clicked */
+// This function is called when the PAUSE button is clicked
 static void pause_cb (GtkButton *button, GstElement *playbin)
 {
-  gst_element_set_state (playbin, GST_STATE_PAUSED);
+	gst_element_set_state (playbin, GST_STATE_PAUSED);
 }
 
 
@@ -93,7 +96,7 @@ static void setCursor(GtkWidget *widget, const char *cursorName)
 }
 
 
-/* This function is called when the main window is closed */
+// This function is called when the main window is closed
 static void cbCloseApp (GtkWidget *widget, GdkEvent *event, GstElement *playbin)
 {
 	// Save app state
@@ -162,7 +165,7 @@ static void button_press_event_cb (GtkWidget *widget, GdkEvent *event, GstElemen
 	GdkEventButton *ev = (GdkEventButton *)event;
 	if (ev->button == 1) // left mouse button
 		dragging = E_STARTING;
-	if (ev->button == 3) // right mouse button
+	else if (ev->button == 3) // right mouse button
 		gtk_menu_popup((GtkMenu *)menu, NULL, NULL, NULL, NULL, 0, gtk_get_current_event_time());
 }
 
@@ -256,29 +259,28 @@ static void key_press_event_cb (GtkWidget *widget, GdkEvent *event, GstElement *
 }
 
 
-/* This creates all the GTK+ widgets that compose our application, and registers the callbacks */
+// This creates all the GTK+ widgets that compose our application, and registers the callbacks
 static void create_ui (GstElement *playbin)
 {
-  GtkWidget *video_window; /* The drawing area where the video will be shown */
-  //~ main_window = gtk_window_new (GTK_WINDOW_POPUP);
-  main_window = (GtkWindow *)gtk_window_new (GTK_WINDOW_TOPLEVEL);
-  g_signal_connect (G_OBJECT (main_window), "delete-event", G_CALLBACK (cbCloseApp), playbin);
-  g_signal_connect (G_OBJECT (main_window), "button-press-event", G_CALLBACK (button_press_event_cb), playbin);
-  g_signal_connect (G_OBJECT (main_window), "button-release-event", G_CALLBACK (button_release_event_cb), playbin);
-  g_signal_connect (G_OBJECT (main_window), "key-press-event", G_CALLBACK (key_press_event_cb), playbin);
-  g_signal_connect (G_OBJECT (main_window), "motion-notify-event", G_CALLBACK (motion_event_cb), playbin);
+	main_window = (GtkWindow *)gtk_window_new (GTK_WINDOW_TOPLEVEL); //GTK_WINDOW_POPUP
+	g_signal_connect (G_OBJECT (main_window), "delete-event", G_CALLBACK (cbCloseApp), playbin);
+	g_signal_connect (G_OBJECT (main_window), "button-press-event", G_CALLBACK (button_press_event_cb), playbin);
+	g_signal_connect (G_OBJECT (main_window), "button-release-event", G_CALLBACK (button_release_event_cb), playbin);
+	g_signal_connect (G_OBJECT (main_window), "key-press-event", G_CALLBACK (key_press_event_cb), playbin);
+	g_signal_connect (G_OBJECT (main_window), "motion-notify-event", G_CALLBACK (motion_event_cb), playbin);
 
-  video_window = gtk_drawing_area_new ();
-  //gtk_widget_set_double_buffered (video_window, FALSE);
-  g_signal_connect (video_window, "realize", G_CALLBACK (realize_cb), playbin);
-  //~ g_signal_connect (video_window, "draw", G_CALLBACK (draw_cb), data);
+	GtkWidget *video_window; /* The drawing area where the video will be shown */
+	video_window = gtk_drawing_area_new ();
+	//gtk_widget_set_double_buffered (video_window, FALSE);
+	g_signal_connect (video_window, "realize", G_CALLBACK (realize_cb), playbin);
+	//~ g_signal_connect (video_window, "draw", G_CALLBACK (draw_cb), data);
 
-  gtk_container_add (GTK_CONTAINER (main_window), video_window);
+	gtk_container_add (GTK_CONTAINER (main_window), video_window);
 
-  gtk_window_set_default_size (GTK_WINDOW (main_window), wwininitial, hwininitial);
+	gtk_window_set_default_size (GTK_WINDOW (main_window), wwininitial, hwininitial);
 
 	gtk_window_set_decorated(main_window, FALSE);
-  gtk_widget_show_all ((GtkWidget *)main_window);
+	gtk_widget_show_all ((GtkWidget *)main_window);
 
 	gtk_window_move(main_window, xwininitial, ywininitial);
 
@@ -290,28 +292,28 @@ static void create_ui (GstElement *playbin)
 	gtk_menu_shell_append((GtkMenuShell *)menu, item1);
 	gtk_menu_shell_append((GtkMenuShell *)menu, item2);
 	
-	g_signal_connect_swapped (G_OBJECT (item1), "activate", G_CALLBACK (cbOpenUrl), playbin);
-	g_signal_connect_swapped (G_OBJECT (item2), "activate", G_CALLBACK (cbCloseFromMenu), playbin);
+	g_signal_connect(G_OBJECT (item1), "activate", G_CALLBACK (cbOpenUrl), playbin);
+	g_signal_connect(G_OBJECT (item2), "activate", G_CALLBACK (cbCloseFromMenu), playbin);
 	gtk_widget_show(item1);
 	gtk_widget_show(item2);
 }
 
 
-/* This function is called when an error message is posted on the bus */
+// This function is called when an error message is posted on the bus
 static void error_cb (GstBus *bus, GstMessage *msg, GstElement *playbin)
 {
-  GError *err;
-  gchar *debug_info;
+	GError *err;
+	gchar *debug_info;
 
-  /* Print error details on the screen */
-  gst_message_parse_error (msg, &err, &debug_info);
-  g_printerr ("Error received from element %s: %s\n", GST_OBJECT_NAME (msg->src), err->message);
-  g_printerr ("Debugging information: %s\n", debug_info ? debug_info : "none");
-  g_clear_error (&err);
-  g_free (debug_info);
+	// Print error details on the screen
+	gst_message_parse_error (msg, &err, &debug_info);
+	g_printerr ("Error received from element %s: %s\n", GST_OBJECT_NAME (msg->src), err->message);
+	g_printerr ("Debugging information: %s\n", debug_info ? debug_info : "none");
+	g_clear_error (&err);
+	g_free (debug_info);
 
-  /* Set the pipeline to READY (which stops playback) */
-  gst_element_set_state (playbin, GST_STATE_READY);
+	// Set the pipeline to READY (which stops playback)
+	gst_element_set_state (playbin, GST_STATE_READY);
 }
 
 
@@ -326,23 +328,23 @@ static void eos_cb (GstBus *bus, GstMessage *msg, GstElement *playbin)
 
 int main(int argc, char *argv[])
 {
-  GstBus *bus;
+	GstBus *bus;
 	GstElement *playbin;
 
-  /* Initialize GTK */
-  gtk_init (&argc, &argv);
+	/* Initialize GTK */
+	gtk_init (&argc, &argv);
 
-  /* Initialize GStreamer */
-  gst_init (&argc, &argv);
+	/* Initialize GStreamer */
+	gst_init (&argc, &argv);
 
-  /* Create the elements */
-  playbin = gst_element_factory_make ("playbin", "playbin");
+	/* Create the elements */
+	playbin = gst_element_factory_make ("playbin", "playbin");
 
-  if (!playbin)
+	if (!playbin)
 	{
-    g_printerr ("Not all elements could be created.\n");
-    return -1;
-  }
+		g_printerr ("Not all elements could be created.\n");
+		return -1;
+	}
 
 	// Access the configuration file
 	GKeyFile *keyFileIni = g_key_file_new ();
@@ -376,7 +378,7 @@ int main(int argc, char *argv[])
 		gFile = g_file_new_for_path (confFile);
 		g_file_make_directory (gFile, NULL, NULL);
 
-	// Default values
+		// Default values
 		gIsPlaying = TRUE;
 		xwininitial = 0;
 		ywininitial = 0;
@@ -387,24 +389,24 @@ int main(int argc, char *argv[])
 //		strcpy(lastStream, "file:/home/zac/progetti/sdlGstream/video.mp4");
 	}
 
-  /* Create the GUI */
-  create_ui (playbin);
+	// Create the GUI
+	create_ui (playbin);
 
-  /* Instruct the bus to emit signals for each received message, and connect to the interesting signals */
-  bus = gst_element_get_bus (playbin);
-  gst_bus_add_signal_watch (bus);
-  g_signal_connect (G_OBJECT (bus), "message::error", (GCallback)error_cb, playbin);
-  g_signal_connect (G_OBJECT (bus), "message::eos", (GCallback)eos_cb, playbin);
-  gst_object_unref (bus);
+	// Instruct the bus to emit signals for each received message, and connect to the interesting signals
+	bus = gst_element_get_bus (playbin);
+	gst_bus_add_signal_watch (bus);
+	g_signal_connect (G_OBJECT (bus), "message::error", (GCallback)error_cb, playbin);
+	g_signal_connect (G_OBJECT (bus), "message::eos", (GCallback)eos_cb, playbin);
+	gst_object_unref (bus);
 
-  g_object_set (playbin, "uri", lastStream, NULL);
+	g_object_set (playbin, "uri", lastStream, NULL);
 	if (gIsPlaying)
 		play_cb(NULL, playbin);
-	
-  gtk_main ();
 
-  // Free resources
-  gst_element_set_state (playbin, GST_STATE_NULL);
-  gst_object_unref (playbin);
-  return 0;
+	gtk_main ();
+
+	// Free resources
+	gst_element_set_state (playbin, GST_STATE_NULL);
+	gst_object_unref (playbin);
+	return 0;
 }
