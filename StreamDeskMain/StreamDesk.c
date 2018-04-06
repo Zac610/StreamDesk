@@ -36,6 +36,7 @@ gint xwininitial, ywininitial;
 gint wwininitial, hwininitial;
 gint xinitial, yinitial;
 GtkWindow *main_window;
+GtkWidget *menu;
 
 /* This function is called when the GUI toolkit creates the physical window that will hold the video.
  * At this point we can retrieve its handler (which has a different meaning depending on the windowing system)
@@ -85,7 +86,7 @@ static void pause_cb (GtkButton *button, GstElement *playbin)
 static void setCursor(GtkWidget *widget, const char *cursorName)
 {
 	GdkDisplay *display = gdk_display_get_default ();
-	GdkCursor *cursor = gdk_cursor_new_from_name (display, cursorName);
+	g_autoptr(GdkCursor) cursor = gdk_cursor_new_from_name (display, cursorName);
 	GdkWindow *window = gtk_widget_get_window (widget);
 
 	gdk_window_set_cursor(window, cursor);
@@ -129,7 +130,7 @@ void cbOpenUrl (GtkMenuItem *menuitem, gpointer user_data)
 		"Open", GTK_RESPONSE_ACCEPT, "Cancel", GTK_RESPONSE_CANCEL, NULL);
 		
 	GtkWidget *content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
-	GtkWidget * entry = gtk_entry_new ();
+	GtkWidget *entry = gtk_entry_new ();
 	gtk_container_add (GTK_CONTAINER (content_area), entry);
 	gtk_widget_show_all(dialog);
 		
@@ -137,16 +138,15 @@ void cbOpenUrl (GtkMenuItem *menuitem, gpointer user_data)
 	if (response == GTK_RESPONSE_ACCEPT)
 	{
 		GstElement *playbin = (GstElement *)user_data;
-		g_print("<<< %s\n", gtk_entry_get_text(GTK_ENTRY(entry)));
 		if (gIsPlaying)
 			gst_element_set_state (playbin, GST_STATE_READY);
 		
 		strcpy(lastStream, gtk_entry_get_text(GTK_ENTRY(entry)));
 
 		g_object_set (playbin, "uri", lastStream, NULL);
-		if (gIsPlaying)
-			play_cb(NULL, playbin);			
+		play_cb(NULL, playbin);			
 	}
+	gtk_widget_destroy (entry);
 	gtk_widget_destroy (dialog);
 }						 
 
@@ -163,27 +163,13 @@ static void button_press_event_cb (GtkWidget *widget, GdkEvent *event, GstElemen
 	if (ev->button == 1) // left mouse button
 		dragging = E_STARTING;
 	if (ev->button == 3) // right mouse button
-	{
-		GtkWidget *menu = gtk_menu_new();
-		GtkWidget *item1 = gtk_menu_item_new_with_label("Open URL...");
-		GtkWidget *item2 = gtk_menu_item_new_with_label("Quit");
-    
-		gtk_menu_shell_append((GtkMenuShell *)menu, item1);
-    gtk_menu_shell_append((GtkMenuShell *)menu, item2);
-		gtk_widget_show_all(menu);
-		
-		g_signal_connect (G_OBJECT (item1), "activate", G_CALLBACK (cbOpenUrl), playbin);
-		g_signal_connect (G_OBJECT (item2), "activate", G_CALLBACK (cbCloseFromMenu), playbin);
-		
-		gtk_menu_popup((GtkMenu *)menu, NULL, NULL, NULL, menu, 3, gtk_get_current_event_time());
-	}
+		gtk_menu_popup((GtkMenu *)menu, NULL, NULL, NULL, NULL, 0, gtk_get_current_event_time());
 }
 
 
 static void button_release_event_cb (GtkWidget *widget, GdkEvent *event, GstElement *playbin)
 {
 	GdkEventButton *ev = (GdkEventButton *)event;
-
 	if (ev->button == 1) // left mouse button
 	{
 		dragging = E_NONE;
@@ -295,6 +281,19 @@ static void create_ui (GstElement *playbin)
   gtk_widget_show_all ((GtkWidget *)main_window);
 
 	gtk_window_move(main_window, xwininitial, ywininitial);
+
+	// Contextual menu
+	menu = gtk_menu_new();
+	GtkWidget *item1 = gtk_menu_item_new_with_label("Open URL...");
+	GtkWidget *item2 = gtk_menu_item_new_with_label("Quit");
+	
+	gtk_menu_shell_append((GtkMenuShell *)menu, item1);
+	gtk_menu_shell_append((GtkMenuShell *)menu, item2);
+	
+	g_signal_connect_swapped (G_OBJECT (item1), "activate", G_CALLBACK (cbOpenUrl), playbin);
+	g_signal_connect_swapped (G_OBJECT (item2), "activate", G_CALLBACK (cbCloseFromMenu), playbin);
+	gtk_widget_show(item1);
+	gtk_widget_show(item2);
 }
 
 
@@ -339,14 +338,13 @@ int main(int argc, char *argv[])
   /* Create the elements */
   playbin = gst_element_factory_make ("playbin", "playbin");
 
-  if (!playbin) {
+  if (!playbin)
+	{
     g_printerr ("Not all elements could be created.\n");
     return -1;
   }
 
-	// Default values
 	// Access the configuration file
-	
 	GKeyFile *keyFileIni = g_key_file_new ();
 	gchar confFile[255];
 	sprintf(confFile, "%s/%s/%s", g_get_user_config_dir(), APPNAME, CONFFILENAME);
@@ -378,15 +376,15 @@ int main(int argc, char *argv[])
 		gFile = g_file_new_for_path (confFile);
 		g_file_make_directory (gFile, NULL, NULL);
 
+	// Default values
 		gIsPlaying = TRUE;
-//		strcpy(lastStream, "file:/home/sergio/Documenti/video.mp4");
-//		strcpy(lastStream, "file:/home/zac/progetti/sdlGstream/video.mp4");
-		strcpy(lastStream, "http://ubuntu.hbr1.com:19800/trance.ogg");
-
 		xwininitial = 0;
 		ywininitial = 0;
 		wwininitial = 320;
 		hwininitial = 200;
+		strcpy(lastStream, "http://ubuntu.hbr1.com:19800/trance.ogg");
+//		strcpy(lastStream, "file:/home/sergio/Documenti/video.mp4");
+//		strcpy(lastStream, "file:/home/zac/progetti/sdlGstream/video.mp4");
 	}
 
   /* Create the GUI */
@@ -405,7 +403,7 @@ int main(int argc, char *argv[])
 	
   gtk_main ();
 
-  /* Free resources */
+  // Free resources
   gst_element_set_state (playbin, GST_STATE_NULL);
   gst_object_unref (playbin);
   return 0;
