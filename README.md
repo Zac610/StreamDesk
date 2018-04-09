@@ -1,5 +1,7 @@
 # StreamDesk
-Play multimedia streams on your desktop
+Play multimedia streams frameless on your desktop
+
+![Alt text](screenshot.png?raw=true "Screenshot")
 
 The actual code is in StreamDeskMain/StreamDesk.c
 
