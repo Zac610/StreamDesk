@@ -4,6 +4,7 @@
   <Dependencies/>
   <VirtualDirectory Name="src">
     <File Name="StreamDesk.c"/>
+    <File Name="icon.xpm.h"/>
   </VirtualDirectory>
   <Settings Type="Executable">
     <GlobalSettings>

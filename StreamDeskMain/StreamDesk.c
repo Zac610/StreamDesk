@@ -15,6 +15,8 @@
 #include <gdk/gdkquartz.h>
 #endif
 
+#include "icon.xpm.h"
+
 static const gchar APPNAME[] = "streamdesk";
 static const gchar CONFFILENAME[] = "settings.ini";
 static const gchar STREAMFILENAME[] = "streamList.ini";
@@ -269,6 +271,10 @@ static void create_ui (GstElement *playbin)
 	g_signal_connect (G_OBJECT (main_window), "key-press-event", G_CALLBACK (key_press_event_cb), playbin);
 	g_signal_connect (G_OBJECT (main_window), "motion-notify-event", G_CALLBACK (motion_event_cb), playbin);
 
+//	GtkWidget *layout = gtk_layout_new(NULL, NULL);
+//	gtk_container_add(GTK_CONTAINER (main_window), layout);
+//  gtk_widget_show(layout);
+
 	GtkWidget *video_window; /* The drawing area where the video will be shown */
 	video_window = gtk_drawing_area_new ();
 	//gtk_widget_set_double_buffered (video_window, FALSE);
@@ -276,6 +282,7 @@ static void create_ui (GstElement *playbin)
 	//~ g_signal_connect (video_window, "draw", G_CALLBACK (draw_cb), data);
 
 	gtk_container_add (GTK_CONTAINER (main_window), video_window);
+//	gtk_layout_put(GTK_LAYOUT(layout), video_window, 0, 0);
 
 	gtk_window_set_default_size (GTK_WINDOW (main_window), wwininitial, hwininitial);
 
@@ -296,6 +303,11 @@ static void create_ui (GstElement *playbin)
 	g_signal_connect(G_OBJECT (item2), "activate", G_CALLBACK (cbCloseFromMenu), playbin);
 	gtk_widget_show(item1);
 	gtk_widget_show(item2);
+	
+
+//	GdkPixbuf *iconBuf = gdk_pixbuf_new_from_xpm_data (icon);
+//	GtkWidget *gtkImage = gtk_image_new_from_pixbuf (iconBuf);
+
 }
 
 
