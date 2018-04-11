@@ -15,7 +15,7 @@
 #include <gdk/gdkquartz.h>
 #endif
 
-#include "icon.xpm.h"
+//#include "icon.xpm.h"
 
 static const gchar APPNAME[] = "streamdesk";
 static const gchar CONFFILENAME[] = "settings.ini";
@@ -78,6 +78,11 @@ static void play_cb (GtkButton *button, GstElement *playbin)
 		gtk_dialog_run(GTK_DIALOG (dialog));
 		gtk_widget_destroy (dialog);
 	}
+			gint n_video, n_audio;
+		g_object_get (playbin, "n-video", &n_video, NULL);
+		g_object_get (playbin, "n-audio", &n_audio, NULL);
+		g_print(">>>> nvideo: %d naudio: %d\n", n_video, n_audio);
+
 }
 
 
@@ -311,6 +316,22 @@ static void create_ui (GstElement *playbin)
 }
 
 
+/* This function is called when an "application" message is posted on the bus.
+ * Here we retrieve the message posted by the tags_cb callback */
+static void application_cb (GstBus *bus, GstMessage *msg, GstElement *playbin)
+{
+  if (g_strcmp0 (gst_structure_get_name (gst_message_get_structure (msg)), "tags-changed") == 0) {
+    /* If the message is the "tags-changed" (only one we are currently issuing), update
+     * the stream info GUI */
+		/* Read some properties */
+		gint n_video, n_audio;
+		g_object_get (playbin, "n-video", &n_video, NULL);
+		g_object_get (playbin, "n-audio", &n_audio, NULL);
+		g_print("nvideo: %d naudio: %d\n", n_video, n_audio);
+  }
+}
+
+
 // This function is called when an error message is posted on the bus
 static void error_cb (GstBus *bus, GstMessage *msg, GstElement *playbin)
 {
@@ -335,6 +356,21 @@ static void eos_cb (GstBus *bus, GstMessage *msg, GstElement *playbin)
 {
   g_print ("End-Of-Stream reached.\n");
   gst_element_set_state (playbin, GST_STATE_READY);
+}
+
+
+
+/* This function is called when new metadata is discovered in the stream */
+static void tags_cb (GstElement *playbin, gint stream, gpointer *data) {
+ 		gint n_video, n_audio;
+		g_object_get (playbin, "n-video", &n_video, NULL);
+		g_object_get (playbin, "n-audio", &n_audio, NULL);
+		g_print("nvideo: %d naudio: %d\n", n_video, n_audio);
+ /* We are possibly in a GStreamer working thread, so we notify the main
+   * thread of this event through a message in the bus */
+//  gst_element_post_message (playbin,
+//    gst_message_new_application (GST_OBJECT (playbin),
+//      gst_structure_new_empty ("tags-changed")));
 }
 
 
@@ -373,15 +409,6 @@ int main(int argc, char *argv[])
 		ywininitial = g_key_file_get_integer(keyFileIni, "Global", "initialY", NULL);
 		wwininitial = g_key_file_get_integer(keyFileIni, "Global", "initialW", NULL);
 		hwininitial = g_key_file_get_integer(keyFileIni, "Global", "initialH", NULL);
-		
-//		if (xwininitial < 0) xwininitial = 0;
-//		if (ywininitial < 0) ywininitial = 0;
-//		if (xwininitial > 10000) xwininitial = 10000;
-//		if (ywininitial > 10000) ywininitial = 10000;
-//		if (wwininitial <=0) wwininitial = 100;
-//		if (hwininitial <=0) hwininitial = 100;
-//		if (wwininitial > 10000) wwininitial = 100;
-//		if (hwininitial > 10000) hwininitial = 100;
 	}
 	else
 	{
@@ -401,12 +428,16 @@ int main(int argc, char *argv[])
 //		strcpy(lastStream, "file:/home/zac/progetti/sdlGstream/video.mp4");
 	}
 
+  g_signal_connect (G_OBJECT (playbin), "video-tags-changed", (GCallback) tags_cb, NULL);
+  g_signal_connect (G_OBJECT (playbin), "audio-tags-changed", (GCallback) tags_cb, NULL);
+
 	// Create the GUI
 	create_ui (playbin);
 
 	// Instruct the bus to emit signals for each received message, and connect to the interesting signals
 	bus = gst_element_get_bus (playbin);
 	gst_bus_add_signal_watch (bus);
+  g_signal_connect (G_OBJECT (bus), "message::application", (GCallback)application_cb, playbin);
 	g_signal_connect (G_OBJECT (bus), "message::error", (GCallback)error_cb, playbin);
 	g_signal_connect (G_OBJECT (bus), "message::eos", (GCallback)eos_cb, playbin);
 	gst_object_unref (bus);
