@@ -37,8 +37,8 @@ gchar lastStream[255] = "";
 gint xwininitial, ywininitial;
 gint wwininitial, hwininitial;
 gint xinitial, yinitial;
-GtkWindow *main_window;
-GtkWidget *menu;
+GtkWindow *gMainWindow;
+GtkWidget *gContextualMenu;
 
 /* This function is called when the GUI toolkit creates the physical window that will hold the video.
  * At this point we can retrieve its handler (which has a different meaning depending on the windowing system)
@@ -74,7 +74,7 @@ static void play_cb (GtkButton *button, GstElement *playbin)
 		gchar *strval;
 		g_object_get(playbin, "uri", &strval, NULL);
 		
-		GtkWidget* dialog = gtk_message_dialog_new (main_window, GTK_DIALOG_MODAL, GTK_MESSAGE_WARNING, GTK_BUTTONS_CLOSE, "Stream not found:\n%s", strval);
+		GtkWidget* dialog = gtk_message_dialog_new (gMainWindow, GTK_DIALOG_MODAL, GTK_MESSAGE_WARNING, GTK_BUTTONS_CLOSE, "Stream not found:\n%s", strval);
 		gtk_dialog_run(GTK_DIALOG (dialog));
 		gtk_widget_destroy (dialog);
 	}
@@ -115,7 +115,7 @@ static void cbCloseApp (GtkWidget *widget, GdkEvent *event, GstElement *playbin)
 	g_key_file_set_string(keyFileIni, "Global", "lastStream", lastStream);
 //	g_free(strval);
 
-	GdkWindow *window = gtk_widget_get_window ((GtkWidget *)main_window);
+	GdkWindow *window = gtk_widget_get_window ((GtkWidget *)gMainWindow);
 	gdk_window_get_origin(window, &xwininitial, &ywininitial);
 	g_key_file_set_integer(keyFileIni, "Global", "initialX", xwininitial);
 	g_key_file_set_integer(keyFileIni, "Global", "initialY", ywininitial);
@@ -136,7 +136,7 @@ static void cbCloseApp (GtkWidget *widget, GdkEvent *event, GstElement *playbin)
 
 void cbOpenUrl (GtkMenuItem *menuitem, gpointer user_data)
 {
-	GtkWidget * dialog = gtk_dialog_new_with_buttons("Open URL", main_window, GTK_DIALOG_MODAL,
+	GtkWidget * dialog = gtk_dialog_new_with_buttons("Open URL", gMainWindow, GTK_DIALOG_MODAL,
 		"Open", GTK_RESPONSE_ACCEPT, "Cancel", GTK_RESPONSE_CANCEL, NULL);
 		
 	GtkWidget *content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
@@ -173,7 +173,7 @@ static void button_press_event_cb (GtkWidget *widget, GdkEvent *event, GstElemen
 	if (ev->button == 1) // left mouse button
 		dragging = E_STARTING;
 	else if (ev->button == 3) // right mouse button
-		gtk_menu_popup((GtkMenu *)menu, NULL, NULL, NULL, NULL, 0, gtk_get_current_event_time());
+		gtk_menu_popup((GtkMenu *)gContextualMenu, NULL, NULL, NULL, NULL, 0, gtk_get_current_event_time());
 }
 
 
@@ -269,12 +269,12 @@ static void key_press_event_cb (GtkWidget *widget, GdkEvent *event, GstElement *
 // This creates all the GTK+ widgets that compose our application, and registers the callbacks
 static void create_ui (GstElement *playbin)
 {
-	main_window = (GtkWindow *)gtk_window_new (GTK_WINDOW_TOPLEVEL); //GTK_WINDOW_POPUP
-	g_signal_connect (G_OBJECT (main_window), "delete-event", G_CALLBACK (cbCloseApp), playbin);
-	g_signal_connect (G_OBJECT (main_window), "button-press-event", G_CALLBACK (button_press_event_cb), playbin);
-	g_signal_connect (G_OBJECT (main_window), "button-release-event", G_CALLBACK (button_release_event_cb), playbin);
-	g_signal_connect (G_OBJECT (main_window), "key-press-event", G_CALLBACK (key_press_event_cb), playbin);
-	g_signal_connect (G_OBJECT (main_window), "motion-notify-event", G_CALLBACK (motion_event_cb), playbin);
+	gMainWindow = (GtkWindow *)gtk_window_new (GTK_WINDOW_TOPLEVEL); //GTK_WINDOW_POPUP
+	g_signal_connect (G_OBJECT (gMainWindow), "delete-event", G_CALLBACK (cbCloseApp), playbin);
+	g_signal_connect (G_OBJECT (gMainWindow), "button-press-event", G_CALLBACK (button_press_event_cb), playbin);
+	g_signal_connect (G_OBJECT (gMainWindow), "button-release-event", G_CALLBACK (button_release_event_cb), playbin);
+	g_signal_connect (G_OBJECT (gMainWindow), "key-press-event", G_CALLBACK (key_press_event_cb), playbin);
+	g_signal_connect (G_OBJECT (gMainWindow), "motion-notify-event", G_CALLBACK (motion_event_cb), playbin);
 
 //	GtkWidget *layout = gtk_layout_new(NULL, NULL);
 //	gtk_container_add(GTK_CONTAINER (main_window), layout);
@@ -286,23 +286,23 @@ static void create_ui (GstElement *playbin)
 	g_signal_connect (video_window, "realize", G_CALLBACK (realize_cb), playbin);
 	//~ g_signal_connect (video_window, "draw", G_CALLBACK (draw_cb), data);
 
-	gtk_container_add (GTK_CONTAINER (main_window), video_window);
+	gtk_container_add (GTK_CONTAINER (gMainWindow), video_window);
 //	gtk_layout_put(GTK_LAYOUT(layout), video_window, 0, 0);
 
-	gtk_window_set_default_size (GTK_WINDOW (main_window), wwininitial, hwininitial);
+	gtk_window_set_default_size (GTK_WINDOW (gMainWindow), wwininitial, hwininitial);
 
-	gtk_window_set_decorated(main_window, FALSE);
-	gtk_widget_show_all ((GtkWidget *)main_window);
+	gtk_window_set_decorated(gMainWindow, FALSE);
+	gtk_widget_show_all ((GtkWidget *)gMainWindow);
 
-	gtk_window_move(main_window, xwininitial, ywininitial);
+	gtk_window_move(gMainWindow, xwininitial, ywininitial);
 
 	// Contextual menu
-	menu = gtk_menu_new();
+	gContextualMenu = gtk_menu_new();
 	GtkWidget *item1 = gtk_menu_item_new_with_label("Open URL...");
 	GtkWidget *item2 = gtk_menu_item_new_with_label("Quit");
 	
-	gtk_menu_shell_append((GtkMenuShell *)menu, item1);
-	gtk_menu_shell_append((GtkMenuShell *)menu, item2);
+	gtk_menu_shell_append((GtkMenuShell *)gContextualMenu, item1);
+	gtk_menu_shell_append((GtkMenuShell *)gContextualMenu, item2);
 	
 	g_signal_connect(G_OBJECT (item1), "activate", G_CALLBACK (cbOpenUrl), playbin);
 	g_signal_connect(G_OBJECT (item2), "activate", G_CALLBACK (cbCloseFromMenu), playbin);
