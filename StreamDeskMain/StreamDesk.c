@@ -15,7 +15,7 @@
 #include <gdk/gdkquartz.h>
 #endif
 
-//#include "icon.xpm.h"
+#include "icon.xpm.h"
 
 static const gchar APPNAME[] = "streamdesk";
 static const gchar CONFFILENAME[] = "settings.ini";
@@ -161,6 +161,18 @@ void cbOpenUrl (GtkMenuItem *menuitem, gpointer user_data)
 }						 
 
 
+void cbAbout (GtkMenuItem *menuitem, gpointer user_data)
+{
+	GdkPixbuf *logo = gdk_pixbuf_new_from_xpm_data (icon);
+	gtk_show_about_dialog (gMainWindow,
+                       "program-name", "StreamDesk",
+                       "logo", logo,
+                       "title", "Program Informations",
+                       "license-type", GTK_LICENSE_GPL_3_0,
+                       NULL);
+}						 
+
+
 void cbCloseFromMenu (GtkMenuItem *menuitem, gpointer user_data)
 {
 	cbCloseApp(NULL, NULL, user_data);
@@ -266,6 +278,15 @@ static void key_press_event_cb (GtkWidget *widget, GdkEvent *event, GstElement *
 }
 
 
+void	addMenuItem(const gchar *label, GtkWidget *menu_shell, GCallback c_handler, GstElement *playbin)
+{
+	GtkWidget *item1 = gtk_menu_item_new_with_label(label);
+	gtk_menu_shell_append((GtkMenuShell *)menu_shell, item1);
+	g_signal_connect(G_OBJECT (item1), "activate", c_handler, playbin);
+	gtk_widget_show(item1);
+}
+
+
 // This creates all the GTK+ widgets that compose our application, and registers the callbacks
 static void create_ui (GstElement *playbin)
 {
@@ -298,21 +319,19 @@ static void create_ui (GstElement *playbin)
 
 	// Contextual menu
 	gContextualMenu = gtk_menu_new();
-	GtkWidget *item1 = gtk_menu_item_new_with_label("Open URL...");
-	GtkWidget *item2 = gtk_menu_item_new_with_label("Quit");
-	
+
+	addMenuItem("Open URL...", gContextualMenu, G_CALLBACK (cbOpenUrl), playbin);
+//	addMenuItem("Streams", gContextualMenu, NULL, playbin);
+	GtkWidget *item1 = gtk_menu_item_new_with_label("Streams");
 	gtk_menu_shell_append((GtkMenuShell *)gContextualMenu, item1);
-	gtk_menu_shell_append((GtkMenuShell *)gContextualMenu, item2);
-	
-	g_signal_connect(G_OBJECT (item1), "activate", G_CALLBACK (cbOpenUrl), playbin);
-	g_signal_connect(G_OBJECT (item2), "activate", G_CALLBACK (cbCloseFromMenu), playbin);
+	g_signal_connect(G_OBJECT (item1), "activate", NULL, playbin);
 	gtk_widget_show(item1);
-	gtk_widget_show(item2);
-	
+	gtk_widget_set_sensitive (item1, FALSE);
+	addMenuItem("About", gContextualMenu, G_CALLBACK (cbAbout), playbin);	
+	addMenuItem("Quit", gContextualMenu, G_CALLBACK (cbCloseFromMenu), playbin);	
 
 //	GdkPixbuf *iconBuf = gdk_pixbuf_new_from_xpm_data (icon);
 //	GtkWidget *gtkImage = gtk_image_new_from_pixbuf (iconBuf);
-
 }
 
 
