@@ -284,12 +284,13 @@ static void key_press_event_cb (GtkWidget *widget, GdkEvent *event, GstElement *
 }
 
 
-void	addMenuItem(const gchar *label, GtkWidget *menu_shell, GCallback c_handler, GstElement *playbin)
+GtkWidget *addMenuItem(const gchar *label, GtkWidget *menu_shell, GCallback c_handler, GstElement *playbin)
 {
 	GtkWidget *item1 = gtk_menu_item_new_with_label(label);
 	gtk_menu_shell_append((GtkMenuShell *)menu_shell, item1);
 	g_signal_connect(G_OBJECT (item1), "activate", c_handler, playbin);
 	gtk_widget_show(item1);
+	return item1;
 }
 
 
@@ -327,12 +328,15 @@ static void create_ui (GstElement *playbin)
 	gContextualMenu = gtk_menu_new();
 
 	addMenuItem("Open URL...", gContextualMenu, G_CALLBACK (cbOpenUrl), playbin);
-//	addMenuItem("Streams", gContextualMenu, NULL, playbin);
-	GtkWidget *item1 = gtk_menu_item_new_with_label("Streams");
-	gtk_menu_shell_append((GtkMenuShell *)gContextualMenu, item1);
+	GtkWidget *streamsMenu = addMenuItem("Streams", gContextualMenu, NULL, playbin);
+//	addMenuItem("Local", streamsMenu, NULL, playbin);
+	
+	GtkWidget *item1 = gtk_menu_item_new_with_label("Local");
+	gtk_menu_item_set_submenu( (GtkMenuItem *)(streamsMenu),item1);
+//	gtk_menu_shell_append((GtkMenuShell *)gContextualMenu, item1);
 	g_signal_connect(G_OBJECT (item1), "activate", NULL, playbin);
 	gtk_widget_show(item1);
-	gtk_widget_set_sensitive (item1, FALSE);
+//	gtk_widget_set_sensitive (item1, FALSE);
 	addMenuItem("Info", gContextualMenu, G_CALLBACK (cbAbout), playbin);	
 	addMenuItem("Quit", gContextualMenu, G_CALLBACK (cbCloseFromMenu), playbin);	
 
