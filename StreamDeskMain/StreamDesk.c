@@ -163,11 +163,17 @@ void cbOpenUrl (GtkMenuItem *menuitem, gpointer user_data)
 
 void cbAbout (GtkMenuItem *menuitem, gpointer user_data)
 {
+	gchar* authors[] = {"Sergio Lo Cascio", NULL};
+	gchar comments[255];
+	sprintf(comments, "Play audio/video data on your desktop.\n\nPlaylist directory is in %s/%s", g_get_user_config_dir(), APPNAME);
 	GdkPixbuf *logo = gdk_pixbuf_new_from_xpm_data (icon);
 	gtk_show_about_dialog (gMainWindow,
                        "program-name", "StreamDesk",
                        "logo", logo,
-                       "title", "Program Informations",
+                       "title", "Program Information",
+                       "authors", authors, 
+                       "comments", comments, 
+                       "website", "https://github.com/Zac610/StreamDesk", 
                        "license-type", GTK_LICENSE_GPL_3_0,
                        NULL);
 }						 
@@ -327,7 +333,7 @@ static void create_ui (GstElement *playbin)
 	g_signal_connect(G_OBJECT (item1), "activate", NULL, playbin);
 	gtk_widget_show(item1);
 	gtk_widget_set_sensitive (item1, FALSE);
-	addMenuItem("About", gContextualMenu, G_CALLBACK (cbAbout), playbin);	
+	addMenuItem("Info", gContextualMenu, G_CALLBACK (cbAbout), playbin);	
 	addMenuItem("Quit", gContextualMenu, G_CALLBACK (cbCloseFromMenu), playbin);	
 
 //	GdkPixbuf *iconBuf = gdk_pixbuf_new_from_xpm_data (icon);
