@@ -40,6 +40,12 @@ gint xinitial, yinitial;
 GtkWindow *gMainWindow;
 GtkWidget *gContextualMenu;
 
+struct MyData
+{
+	GtkWidget *dialog;
+	GtkWidget *entry;
+};
+
 /* This function is called when the GUI toolkit creates the physical window that will hold the video.
  * At this point we can retrieve its handler (which has a different meaning depending on the windowing system)
  * and pass it to GStreamer through the VideoOverlay interface. */
@@ -134,14 +140,53 @@ static void cbCloseApp (GtkWidget *widget, GdkEvent *event, GstElement *playbin)
 }
 
 
+void cbBrowseButtonClicked (GtkButton *button, gpointer parent_window)
+{
+	struct MyData *data = (struct MyData *)parent_window;
+	
+	GtkWidget *dialog;
+	GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_OPEN;
+	gint res;
+
+	dialog = gtk_file_chooser_dialog_new ("Open File",
+                                      GTK_WINDOW(data->dialog),
+                                      action,
+                                      ("_Cancel"),
+                                      GTK_RESPONSE_CANCEL,
+                                      ("_Open"),
+                                      GTK_RESPONSE_ACCEPT,
+                                      NULL);
+
+	res = gtk_dialog_run (GTK_DIALOG (dialog));
+	if (res == GTK_RESPONSE_ACCEPT)
+  {
+    GtkFileChooser *chooser = GTK_FILE_CHOOSER (dialog);
+		sprintf(lastStream, "file:%s", gtk_file_chooser_get_filename (chooser));
+		gtk_entry_set_text(GTK_ENTRY(data->entry), lastStream);
+  }
+
+	gtk_widget_destroy (dialog);
+}
+
+
 void cbOpenUrl (GtkMenuItem *menuitem, gpointer user_data)
 {
 	GtkWidget * dialog = gtk_dialog_new_with_buttons("Open URL", gMainWindow, GTK_DIALOG_MODAL,
 		"Open", GTK_RESPONSE_ACCEPT, "Cancel", GTK_RESPONSE_CANCEL, NULL);
-		
+	gtk_window_set_resizable(GTK_WINDOW(dialog), FALSE);
+	
 	GtkWidget *content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
+	
+	GtkWidget *layout = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+	gtk_container_add(GTK_CONTAINER (content_area), layout);
 	GtkWidget *entry = gtk_entry_new ();
-	gtk_container_add (GTK_CONTAINER (content_area), entry);
+	gtk_entry_set_text(GTK_ENTRY(entry), lastStream);
+	gtk_container_add (GTK_CONTAINER (layout), entry);
+	GtkWidget *browseButton = gtk_button_new_with_label("...");
+	struct MyData data = {dialog, entry};
+	g_signal_connect(G_OBJECT (browseButton), "clicked", G_CALLBACK(cbBrowseButtonClicked), &data);
+
+	gtk_container_add (GTK_CONTAINER (layout), browseButton);
 	gtk_widget_show_all(dialog);
 		
 	GtkResponseType response = gtk_dialog_run(GTK_DIALOG (dialog));
@@ -332,6 +377,8 @@ static void create_ui (GstElement *playbin)
 	GtkWidget *streamsSubMenu = gtk_menu_new();
 	gtk_menu_item_set_submenu( GTK_MENU_ITEM(streamsMenuItem), streamsSubMenu);
 	addMenuItem("Local", streamsSubMenu, NULL, playbin);
+	
+	// Fills the local submenu
 	
 	addMenuItem("Info", gContextualMenu, G_CALLBACK (cbAbout), playbin);	
 	addMenuItem("Quit", gContextualMenu, G_CALLBACK (cbCloseFromMenu), playbin);	
