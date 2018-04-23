@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<CodeLite_Project Name="StreamDeskMain" InternalType="Console">
+<CodeLite_Project Name="StreamDeskMain" InternalType="Console" Version="10.0.0">
   <Description/>
   <Dependencies/>
   <VirtualDirectory Name="src">
+    <File Name="global.h"/>
+    <File Name="PlsManager.h"/>
+    <File Name="PlsManager.c"/>
     <File Name="StreamDesk.c"/>
     <File Name="icon.xpm.h"/>
   </VirtualDirectory>

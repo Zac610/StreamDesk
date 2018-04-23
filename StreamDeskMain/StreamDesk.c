@@ -16,10 +16,10 @@
 #endif
 
 #include "icon.xpm.h"
+#include "PlsManager.h"
+#include "global.h"
 
-static const gchar APPNAME[] = "streamdesk";
 static const gchar CONFFILENAME[] = "settings.ini";
-static const gchar STREAMFILENAME[] = "streamList.ini";
 
 static const int RESIZEBORDER = 20;
 
@@ -170,7 +170,7 @@ void cbBrowseButtonClicked (GtkButton *button, gpointer parent_window)
 
 
 void cbOpenUrl (GtkMenuItem *menuitem, gpointer user_data)
-{
+{  
 	GtkWidget * dialog = gtk_dialog_new_with_buttons("Open URL", gMainWindow, GTK_DIALOG_MODAL,
 		"Open", GTK_RESPONSE_ACCEPT, "Cancel", GTK_RESPONSE_CANCEL, NULL);
 	gtk_window_set_resizable(GTK_WINDOW(dialog), FALSE);
@@ -501,6 +501,7 @@ int main(int argc, char *argv[])
 //		strcpy(lastStream, "file:/home/sergio/Documenti/video.mp4");
 //		strcpy(lastStream, "file:/home/zac/progetti/sdlGstream/video.mp4");
 	}
+	g_key_file_free(keyFileIni);
 
   g_signal_connect (G_OBJECT (playbin), "video-tags-changed", (GCallback) tags_cb, NULL);
   g_signal_connect (G_OBJECT (playbin), "audio-tags-changed", (GCallback) tags_cb, NULL);
