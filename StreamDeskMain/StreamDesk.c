@@ -169,6 +169,15 @@ void cbBrowseButtonClicked (GtkButton *button, gpointer parent_window)
 }
 
 
+void playLastStream(GstElement *playbin)
+{
+	if (gIsPlaying)
+		gst_element_set_state (playbin, GST_STATE_READY);
+	g_object_set (playbin, "uri", lastStream, NULL);
+	play_cb(NULL, playbin);			
+}
+
+
 void cbOpenUrl (GtkMenuItem *menuitem, gpointer user_data)
 {  
 	GtkWidget * dialog = gtk_dialog_new_with_buttons("Open URL", gMainWindow, GTK_DIALOG_MODAL,
@@ -192,14 +201,9 @@ void cbOpenUrl (GtkMenuItem *menuitem, gpointer user_data)
 	GtkResponseType response = gtk_dialog_run(GTK_DIALOG (dialog));
 	if (response == GTK_RESPONSE_ACCEPT)
 	{
-		GstElement *playbin = (GstElement *)user_data;
-		if (gIsPlaying)
-			gst_element_set_state (playbin, GST_STATE_READY);
-		
 		strcpy(lastStream, gtk_entry_get_text(GTK_ENTRY(entry)));
-
-		g_object_set (playbin, "uri", lastStream, NULL);
-		play_cb(NULL, playbin);			
+		GstElement *playbin = (GstElement *)user_data;
+		playLastStream(playbin);		
 	}
 	gtk_widget_destroy (entry);
 	gtk_widget_destroy (dialog);
@@ -376,9 +380,13 @@ static void create_ui (GstElement *playbin)
 	GtkWidget *streamsMenuItem = addMenuItem("Streams", gContextualMenu, NULL, playbin);
 	GtkWidget *streamsSubMenu = gtk_menu_new();
 	gtk_menu_item_set_submenu( GTK_MENU_ITEM(streamsMenuItem), streamsSubMenu);
-	addMenuItem("Local", streamsSubMenu, NULL, playbin);
+	GtkWidget *localMenuItem = addMenuItem("Local", streamsSubMenu, NULL, playbin);
 	
 	// Fills the local submenu
+	GPtrArray *playItemList = loadPls("local");
+	GtkWidget *localSubMenu = gtk_menu_new();
+	gtk_menu_item_set_submenu( GTK_MENU_ITEM(localMenuItem), localSubMenu);
+//	addMenuItem("pippo", localSubMenu, G_CALLBACK (cbPlayUrl), "http://ubuntu.hbr1.com:19800/trance.ogg");
 	
 	addMenuItem("Info", gContextualMenu, G_CALLBACK (cbAbout), playbin);	
 	addMenuItem("Quit", gContextualMenu, G_CALLBACK (cbCloseFromMenu), playbin);	
