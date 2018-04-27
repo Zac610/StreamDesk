@@ -197,7 +197,17 @@ void cbOpenUrl (GtkMenuItem *menuitem)
 	}
 	gtk_widget_destroy (entry);
 	gtk_widget_destroy (dialog);
-}						 
+}				
+
+
+void cbPlayUrl(GtkMenuItem *menuitem, gpointer data)
+{
+	if (data)
+	{
+		strcpy(lastStream, data);
+		playLastStream();		
+	}
+}		 
 
 
 void cbAbout (GtkMenuItem *menuitem)
@@ -324,13 +334,20 @@ static void cbKeyPressEvent (GtkWidget *widget, GdkEvent *event)
 }
 
 
-GtkWidget *addMenuItem(const gchar *label, GtkWidget *menu_shell, GCallback c_handler)
+GtkWidget *addMenuItem(const gchar *label, GtkWidget *menu_shell, GCallback c_handler, gpointer data)
 {
 	GtkWidget *menuItem = gtk_menu_item_new_with_label(label);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu_shell), menuItem);
 	if (c_handler)
-		g_signal_connect(G_OBJECT (menuItem), "activate", c_handler, NULL);
+		g_signal_connect(G_OBJECT (menuItem), "activate", c_handler, data);
 	return menuItem;
+}
+
+
+void playItemAdd(PlayItem *playItem, gpointer user_data)
+{
+//	PlayItem *playItem = (PlayItem*)data;
+	addMenuItem(playItem->title->str, user_data, G_CALLBACK (cbPlayUrl), playItem->url->str);
 }
 
 
@@ -367,21 +384,23 @@ static void create_ui()
 	// Contextual menu
 	gContextualMenu = gtk_menu_new();
 
-	addMenuItem("Open URL...", gContextualMenu, G_CALLBACK (cbOpenUrl));
+	addMenuItem("Open URL...", gContextualMenu, G_CALLBACK (cbOpenUrl), NULL);
 
-	GtkWidget *streamsMenuItem = addMenuItem("Streams", gContextualMenu, NULL);
+	GtkWidget *streamsMenuItem = addMenuItem("Streams", gContextualMenu, NULL, NULL);
 	GtkWidget *streamsSubMenu = gtk_menu_new();
 	gtk_menu_item_set_submenu( GTK_MENU_ITEM(streamsMenuItem), streamsSubMenu);
-	GtkWidget *localMenuItem = addMenuItem("Local", streamsSubMenu, NULL);
+	GtkWidget *localMenuItem = addMenuItem("Local", streamsSubMenu, NULL, NULL);
 	
 	// Fills the local submenu
 	GPtrArray *playItemList = loadPls("local");
 	GtkWidget *localSubMenu = gtk_menu_new();
 	gtk_menu_item_set_submenu( GTK_MENU_ITEM(localMenuItem), localSubMenu);
+	g_ptr_array_foreach(playItemList, (GFunc)playItemAdd, localSubMenu);
+	
 //	addMenuItem("pippo", localSubMenu, G_CALLBACK (cbPlayUrl), "http://ubuntu.hbr1.com:19800/trance.ogg");
 	
-	addMenuItem("Info", gContextualMenu, G_CALLBACK (cbAbout));	
-	addMenuItem("Quit", gContextualMenu, G_CALLBACK (cbCloseApp));	
+	addMenuItem("Info", gContextualMenu, G_CALLBACK (cbAbout), NULL);	
+	addMenuItem("Quit", gContextualMenu, G_CALLBACK (cbCloseApp), NULL);	
 
 	gtk_widget_show_all(gContextualMenu);
  

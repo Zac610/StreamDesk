@@ -16,14 +16,15 @@ GPtrArray *loadPls(const gchar *plsName)
 		retVal = g_ptr_array_new();
 		int numberofentries = g_key_file_get_integer(keyFilePls, "playlist", "numberofentries", NULL);
 		int id = 1;
-		PlayItem playItem;
+		
+		PlayItem *playItem = (PlayItem*)g_new(PlayItem, 1);
 		while (id <= numberofentries)
 		{
 			g_sprintf(strTemp, "Title%d", id);
-			playItem.title = g_string_new(g_key_file_get_string(keyFilePls, "playlist", strTemp, NULL));
+			playItem->title = g_string_new(g_key_file_get_string(keyFilePls, "playlist", strTemp, NULL));
 			g_sprintf(strTemp, "File%d", id);
-			playItem.url = g_string_new(g_key_file_get_string(keyFilePls, "playlist", strTemp, NULL));
-			g_ptr_array_add(retVal, (gpointer)&playItem);
+			playItem->url = g_string_new(g_key_file_get_string(keyFilePls, "playlist", strTemp, NULL));
+			g_ptr_array_add(retVal, (gpointer)playItem);
 			id++;
 		}
 	}
