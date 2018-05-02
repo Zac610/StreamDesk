@@ -396,9 +396,9 @@ static void create_ui()
 	GtkWidget *localSubMenu = gtk_menu_new();
 	gtk_menu_item_set_submenu( GTK_MENU_ITEM(localMenuItem), localSubMenu);
 	g_ptr_array_foreach(playItemList, (GFunc)playItemAdd, localSubMenu);
-	
-//	addMenuItem("pippo", localSubMenu, G_CALLBACK (cbPlayUrl), "http://ubuntu.hbr1.com:19800/trance.ogg");
-	
+
+listPls();
+
 	addMenuItem("Info", gContextualMenu, G_CALLBACK (cbAbout), NULL);	
 	addMenuItem("Quit", gContextualMenu, G_CALLBACK (cbCloseApp), NULL);	
 

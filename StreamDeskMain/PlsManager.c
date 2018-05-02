@@ -2,6 +2,17 @@
 #include "global.h"
 #include <glib/gprintf.h>
 
+
+//void deletePlsItem(gpointer data)
+//{
+//	PlayItem *playItem = (PlayItem *)data;
+//	if (playItem->title->len)
+//		g_string_free(playItem->title, TRUE);
+//	if (playItem->url->len)
+//	g_string_free(playItem->url, TRUE);
+//}
+
+
 GPtrArray *loadPls(const gchar *plsName)
 {
 	GPtrArray *retVal = NULL;
@@ -27,9 +38,45 @@ GPtrArray *loadPls(const gchar *plsName)
 			g_ptr_array_add(retVal, (gpointer)playItem);
 			id++;
 		}
+		
+//		g_ptr_array_set_free_func(retVal, deletePlsItem);
 	}
 
 	g_key_file_free(keyFilePls);
 
 	return retVal;
 }
+
+void deleteStringItem(gpointer data)
+{
+	GString *stringItem = (GString *)data;
+	if (stringItem->len)
+		g_string_free(stringItem, TRUE);
+}
+
+
+GPtrArray *listPls(void)
+{
+	GPtrArray *retVal = NULL;
+	gchar strTemp[255];
+	g_sprintf(strTemp, "%s/%s/", g_get_user_config_dir(), APPNAME);
+
+	GDir *dir;
+	GError *error;
+	const gchar *filename;
+
+	dir = g_dir_open(strTemp, 0, &error);
+	while ((filename = g_dir_read_name(dir)))
+    printf("%s\n", filename);
+		
+	g_dir_close(dir);
+	
+	g_ptr_array_set_free_func(retVal, deleteStringItem);
+	return retVal;
+}
+
+
+//void releasePlsData(GPtrArray *plsData)
+//{
+//	g_ptr_array_free(plsData, TRUE);
+//}
