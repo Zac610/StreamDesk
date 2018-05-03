@@ -1,6 +1,7 @@
 #include "PlsManager.h"
 #include "global.h"
 #include <glib/gprintf.h>
+#include <string.h>
 
 
 //void deletePlsItem(gpointer data)
@@ -57,7 +58,7 @@ void deleteStringItem(gpointer data)
 
 GPtrArray *listPls(void)
 {
-	GPtrArray *retVal = NULL;
+	GPtrArray *retVal = g_ptr_array_new();
 	gchar strTemp[255];
 	g_sprintf(strTemp, "%s/%s/", g_get_user_config_dir(), APPNAME);
 
@@ -67,7 +68,12 @@ GPtrArray *listPls(void)
 
 	dir = g_dir_open(strTemp, 0, &error);
 	while ((filename = g_dir_read_name(dir)))
-    printf("%s\n", filename);
+		if (g_str_has_suffix (filename, ".pls"))
+		{
+			if (g_strcmp0(filename, "Local.pls") == 0) continue;
+			GString *item = g_string_new_len(filename, strlen(filename)-strlen(".pls"));
+			g_ptr_array_add(retVal, (gpointer)item);
+		}
 		
 	g_dir_close(dir);
 	

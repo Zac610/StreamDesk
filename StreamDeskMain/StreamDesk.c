@@ -351,6 +351,24 @@ void playItemAdd(PlayItem *playItem, gpointer user_data)
 }
 
 
+void addPlsSubMenu(const gchar* plsName, GtkWidget *streamsSubMenu)
+{
+	GPtrArray *playItemList = loadPls(plsName);
+	GtkWidget *localSubMenu = gtk_menu_new();
+	GtkWidget *localMenuItem = addMenuItem(plsName, streamsSubMenu, NULL, NULL);
+	gtk_menu_item_set_submenu( GTK_MENU_ITEM(localMenuItem), localSubMenu);
+	g_ptr_array_foreach(playItemList, (GFunc)playItemAdd, localSubMenu);
+}
+
+
+void playListAdd(GString *plsName, gpointer user_data)
+{
+//	PlayItem *playItem = (PlayItem*)data;
+//	addMenuItem(playItem->title->str, user_data, G_CALLBACK (cbPlayUrl), playItem->url->str);
+	addPlsSubMenu(plsName->str, (GtkWidget *)user_data);
+}
+
+
 static void create_ui()
 {
 	// This creates all the GTK+ widgets that compose our application, and registers the callbacks
@@ -389,15 +407,12 @@ static void create_ui()
 	GtkWidget *streamsMenuItem = addMenuItem("Streams", gContextualMenu, NULL, NULL);
 	GtkWidget *streamsSubMenu = gtk_menu_new();
 	gtk_menu_item_set_submenu( GTK_MENU_ITEM(streamsMenuItem), streamsSubMenu);
-	GtkWidget *localMenuItem = addMenuItem("Local", streamsSubMenu, NULL, NULL);
 	
 	// Fills the local submenu
-	GPtrArray *playItemList = loadPls("local");
-	GtkWidget *localSubMenu = gtk_menu_new();
-	gtk_menu_item_set_submenu( GTK_MENU_ITEM(localMenuItem), localSubMenu);
-	g_ptr_array_foreach(playItemList, (GFunc)playItemAdd, localSubMenu);
+	addPlsSubMenu("Local", streamsSubMenu);
 
-listPls();
+	GPtrArray *plsList = listPls();
+	g_ptr_array_foreach(plsList, (GFunc)playListAdd, streamsSubMenu);
 
 	addMenuItem("Info", gContextualMenu, G_CALLBACK (cbAbout), NULL);	
 	addMenuItem("Quit", gContextualMenu, G_CALLBACK (cbCloseApp), NULL);	
