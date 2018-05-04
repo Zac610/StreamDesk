@@ -39,6 +39,7 @@ gint xinitial, yinitial;
 GtkWindow *gMainWindow;
 GtkWidget *gContextualMenu;
 GstElement *gPlaybin;
+GPtrArray *gLocalPlayItemList;
 
 struct MyData
 {
@@ -107,10 +108,7 @@ static void cbCloseApp (GtkWidget *widget, GdkEvent *event)
 	g_autoptr(GKeyFile) keyFileIni = g_key_file_new ();
 	g_key_file_set_boolean(keyFileIni, "Global", "autostart", gIsPlaying);
 
-//	gchar *strval;
-//	g_object_get(playbin, "uri", &strval, NULL);
 	g_key_file_set_string(keyFileIni, "Global", "lastStream", lastStream);
-//	g_free(strval);
 
 	GdkWindow *window = gtk_widget_get_window ((GtkWidget *)gMainWindow);
 	gdk_window_get_origin(window, &xwininitial, &ywininitial);
@@ -125,6 +123,9 @@ static void cbCloseApp (GtkWidget *widget, GdkEvent *event)
 	gchar confFile[255];
 	sprintf(confFile, "%s/%s/%s", g_get_user_config_dir(), APPNAME, CONFFILENAME);
 	g_key_file_save_to_file (keyFileIni, confFile, NULL);
+
+	// save local playlist
+	savePls("Local", gLocalPlayItemList);
 
   gst_element_set_state (gPlaybin, GST_STATE_READY);
   gtk_main_quit ();
@@ -193,7 +194,13 @@ void cbOpenUrl (GtkMenuItem *menuitem)
 	if (response == GTK_RESPONSE_ACCEPT)
 	{
 		strcpy(lastStream, gtk_entry_get_text(GTK_ENTRY(entry)));
-		playLastStream();		
+		playLastStream();
+		
+		// add stream in local playlist
+		PlayItem *playItem = (PlayItem*)g_new(PlayItem, 1);
+		playItem->title = g_string_new(lastStream);
+		playItem->url = g_string_new(lastStream);
+		g_ptr_array_insert(gLocalPlayItemList, 0, playItem);
 	}
 	gtk_widget_destroy (entry);
 	gtk_widget_destroy (dialog);
@@ -226,12 +233,6 @@ void cbAbout (GtkMenuItem *menuitem)
                        "license-type", GTK_LICENSE_GPL_3_0,
                        NULL);
 }						 
-
-
-//void cbCloseFromMenu (GtkMenuItem *menuitem, gpointer user_data)
-//{
-//	cbCloseApp(NULL, NULL);
-//}						 
 
 
 static void cbButtonPressEvent(GtkWidget *widget, GdkEvent *event)
@@ -363,8 +364,6 @@ void addPlsSubMenu(const gchar* plsName, GtkWidget *streamsSubMenu)
 
 void playListAdd(GString *plsName, gpointer user_data)
 {
-//	PlayItem *playItem = (PlayItem*)data;
-//	addMenuItem(playItem->title->str, user_data, G_CALLBACK (cbPlayUrl), playItem->url->str);
 	addPlsSubMenu(plsName->str, (GtkWidget *)user_data);
 }
 
@@ -413,12 +412,15 @@ static void create_ui()
 
 	GPtrArray *plsList = listPls();
 	g_ptr_array_foreach(plsList, (GFunc)playListAdd, streamsSubMenu);
+	g_ptr_array_free(plsList, TRUE);
 
 	addMenuItem("Info", gContextualMenu, G_CALLBACK (cbAbout), NULL);	
 	addMenuItem("Quit", gContextualMenu, G_CALLBACK (cbCloseApp), NULL);	
 
 	gtk_widget_show_all(gContextualMenu);
  
+ 	gLocalPlayItemList = loadPls("Local");
+
 //	GdkPixbuf *iconBuf = gdk_pixbuf_new_from_xpm_data (icon);
 //	GtkWidget *gtkImage = gtk_image_new_from_pixbuf (iconBuf);
 }

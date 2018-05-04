@@ -3,7 +3,7 @@
 #include <glib/gprintf.h>
 #include <string.h>
 
-
+#define MAX_LOCAL_ENTRIES 10
 //void deletePlsItem(gpointer data)
 //{
 //	PlayItem *playItem = (PlayItem *)data;
@@ -16,7 +16,9 @@
 
 GPtrArray *loadPls(const gchar *plsName)
 {
-	GPtrArray *retVal = NULL;
+	GPtrArray *retVal = g_ptr_array_new();
+	PlayItem *playItem = (PlayItem*)g_new(PlayItem, 1);
+
 	gchar strTemp[255];
 	g_sprintf(strTemp, "%s/%s/%s.pls", g_get_user_config_dir(), APPNAME, plsName);
 
@@ -25,11 +27,9 @@ GPtrArray *loadPls(const gchar *plsName)
 	gboolean keyFileFound = g_key_file_load_from_file(keyFilePls, strTemp, G_KEY_FILE_NONE, NULL);
 	if (keyFileFound)
 	{
-		retVal = g_ptr_array_new();
 		int numberofentries = g_key_file_get_integer(keyFilePls, "playlist", "numberofentries", NULL);
 		int id = 1;
 		
-		PlayItem *playItem = (PlayItem*)g_new(PlayItem, 1);
 		while (id <= numberofentries)
 		{
 			g_sprintf(strTemp, "Title%d", id);
@@ -39,14 +39,20 @@ GPtrArray *loadPls(const gchar *plsName)
 			g_ptr_array_add(retVal, (gpointer)playItem);
 			id++;
 		}
-		
-//		g_ptr_array_set_free_func(retVal, deletePlsItem);
+	}
+	else
+	{
+		playItem->title = g_string_new("<empty>");
+		playItem->url = g_string_new("");
+		g_ptr_array_add(retVal, (gpointer)playItem);
 	}
 
 	g_key_file_free(keyFilePls);
 
+//		g_ptr_array_set_free_func(retVal, deletePlsItem);
 	return retVal;
 }
+
 
 void deleteStringItem(gpointer data)
 {
@@ -70,7 +76,8 @@ GPtrArray *listPls(void)
 	while ((filename = g_dir_read_name(dir)))
 		if (g_str_has_suffix (filename, ".pls"))
 		{
-			if (g_strcmp0(filename, "Local.pls") == 0) continue;
+			if (g_strcmp0(filename, "Local.pls") == 0)
+				continue;
 			GString *item = g_string_new_len(filename, strlen(filename)-strlen(".pls"));
 			g_ptr_array_add(retVal, (gpointer)item);
 		}
@@ -81,6 +88,29 @@ GPtrArray *listPls(void)
 	return retVal;
 }
 
+
+void savePls(const gchar *plsName, GPtrArray *plsList)
+{
+	gchar plsFile[255];
+	g_sprintf(plsFile, "%s/%s/%s.pls", g_get_user_config_dir(), APPNAME, plsName);
+
+	g_autoptr(GKeyFile) keyFileIni = g_key_file_new ();
+
+	guint numEntries = plsList->len;
+	if (numEntries > MAX_LOCAL_ENTRIES)
+		numEntries = MAX_LOCAL_ENTRIES;
+
+	g_key_file_set_integer(keyFileIni, "playlist", "numberofentries", numEntries);
+
+
+//	g_ptr_array_foreach(gLocalPlayItemList, (GFunc)playItemAdd, localSubMenu);
+
+
+	g_key_file_set_integer(keyFileIni, "playlist", "Version", 2);
+
+	g_key_file_save_to_file (keyFileIni, plsFile, NULL);
+
+}
 
 //void releasePlsData(GPtrArray *plsData)
 //{
