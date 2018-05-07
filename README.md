@@ -14,5 +14,5 @@ gcc StreamDesk.c -o StreamDesk `pkg-config --cflags --libs gstreamer-video-1.0 g
 
 The needed libraries can be installed with the command:
 ```
-sudo apt install libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgtk-3-dev
+sudo apt install libgtk-3-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0 gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-doc gstreamer1.0-tools
 ```
