@@ -23,7 +23,7 @@
       <Compiler Options="-g;-O0;-Wall" C_Options="-g;-O0;-Wall;$(shell pkg-config --cflags glib-2.0 gstreamer-1.0 gstreamer-video-1.0 gtk+-3.0)" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
       </Compiler>
-      <Linker Options="$(shell sdl2-config --libs);$(shell pkg-config --libs gstreamer-1.0 gstreamer-video-1.0 gtk+-3.0)" Required="yes"/>
+      <Linker Options="$(shell pkg-config --libs gstreamer-1.0 gstreamer-video-1.0 gtk+-3.0)" Required="yes"/>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Debug" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
       <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
