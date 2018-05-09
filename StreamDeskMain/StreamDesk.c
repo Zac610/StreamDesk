@@ -32,10 +32,9 @@ enum DragState
 } dragging = E_NONE;
 
 gboolean gIsPlaying; // TODO: check if can be used state of playbin
-gchar lastStream[255] = ""; // TODO: check if can be used uri of playbin
-gint xwininitial, ywininitial;
-gint wwininitial, hwininitial;
-gint xinitial, yinitial;
+gchar gLastStream[255] = ""; // TODO: check if can be used uri of playbin
+gint gxWinInitial, gyWinInitial;
+gint gwWinInitial, ghWinInitial;
 GtkWindow *gMainWindow;
 GtkWidget *gContextualMenu;
 GstElement *gPlaybin;
@@ -108,17 +107,17 @@ static void cbCloseApp (GtkWidget *widget, GdkEvent *event)
 	g_autoptr(GKeyFile) keyFileIni = g_key_file_new ();
 	g_key_file_set_boolean(keyFileIni, "Global", "autostart", gIsPlaying);
 
-	g_key_file_set_string(keyFileIni, "Global", "lastStream", lastStream);
+	g_key_file_set_string(keyFileIni, "Global", "lastStream", gLastStream);
 
 	GdkWindow *window = gtk_widget_get_window ((GtkWidget *)gMainWindow);
-	gdk_window_get_origin(window, &xwininitial, &ywininitial);
-	g_key_file_set_integer(keyFileIni, "Global", "initialX", xwininitial);
-	g_key_file_set_integer(keyFileIni, "Global", "initialY", ywininitial);
+	gdk_window_get_origin(window, &gxWinInitial, &gyWinInitial);
+	g_key_file_set_integer(keyFileIni, "Global", "initialX", gxWinInitial);
+	g_key_file_set_integer(keyFileIni, "Global", "initialY", gyWinInitial);
 
-	wwininitial = gdk_window_get_width(window);
-	hwininitial = gdk_window_get_height(window);
-	g_key_file_set_integer(keyFileIni, "Global", "initialW", wwininitial);
-	g_key_file_set_integer(keyFileIni, "Global", "initialH", hwininitial);
+	gwWinInitial = gdk_window_get_width(window);
+	ghWinInitial = gdk_window_get_height(window);
+	g_key_file_set_integer(keyFileIni, "Global", "initialW", gwWinInitial);
+	g_key_file_set_integer(keyFileIni, "Global", "initialH", ghWinInitial);
 
 	gchar confFile[255];
 	sprintf(confFile, "%s/%s/%s", g_get_user_config_dir(), APPNAME, CONFFILENAME);
@@ -153,8 +152,8 @@ void cbBrowseButtonClicked (GtkButton *button, gpointer parent_window)
 	if (res == GTK_RESPONSE_ACCEPT)
   {
     GtkFileChooser *chooser = GTK_FILE_CHOOSER (dialog);
-		sprintf(lastStream, "file:%s", gtk_file_chooser_get_filename (chooser));
-		gtk_entry_set_text(GTK_ENTRY(data->entry), lastStream);
+		sprintf(gLastStream, "file:%s", gtk_file_chooser_get_filename (chooser));
+		gtk_entry_set_text(GTK_ENTRY(data->entry), gLastStream);
   }
 
 	gtk_widget_destroy (dialog);
@@ -165,12 +164,12 @@ void playLastStream()
 {
 	if (gIsPlaying)
 		gst_element_set_state (gPlaybin, GST_STATE_READY);
-	g_object_set (gPlaybin, "uri", lastStream, NULL);
+	g_object_set (gPlaybin, "uri", gLastStream, NULL);
 	playPlaybin();			
 }
 
 
-void cbOpenUrl (GtkMenuItem *menuitem)
+void cbOpenUrl(GtkMenuItem *menuitem)
 {  
 	GtkWidget * dialog = gtk_dialog_new_with_buttons("Open URL", gMainWindow, GTK_DIALOG_MODAL,
 		"Open", GTK_RESPONSE_ACCEPT, "Cancel", GTK_RESPONSE_CANCEL, NULL);
@@ -181,7 +180,7 @@ void cbOpenUrl (GtkMenuItem *menuitem)
 	GtkWidget *layout = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
 	gtk_container_add(GTK_CONTAINER (content_area), layout);
 	GtkWidget *entry = gtk_entry_new ();
-	gtk_entry_set_text(GTK_ENTRY(entry), lastStream);
+	gtk_entry_set_text(GTK_ENTRY(entry), gLastStream);
 	gtk_container_add (GTK_CONTAINER (layout), entry);
 	GtkWidget *browseButton = gtk_button_new_with_label("...");
 	struct MyData data = {dialog, entry};
@@ -193,13 +192,13 @@ void cbOpenUrl (GtkMenuItem *menuitem)
 	GtkResponseType response = gtk_dialog_run(GTK_DIALOG (dialog));
 	if (response == GTK_RESPONSE_ACCEPT)
 	{
-		strcpy(lastStream, gtk_entry_get_text(GTK_ENTRY(entry)));
+		strcpy(gLastStream, gtk_entry_get_text(GTK_ENTRY(entry)));
 		playLastStream();
 		
 		// add stream in local playlist
 		PlayItem *playItem = (PlayItem*)g_new(PlayItem, 1);
-		playItem->title = g_string_new(lastStream);
-		playItem->url = g_string_new(lastStream);
+		playItem->title = g_string_new(gLastStream);
+		playItem->url = g_string_new(gLastStream);
 		g_ptr_array_insert(gLocalPlayItemList, 0, playItem);
 	}
 	gtk_widget_destroy (entry);
@@ -211,13 +210,13 @@ void cbPlayUrl(GtkMenuItem *menuitem, gpointer data)
 {
 	if (data)
 	{
-		strcpy(lastStream, data);
+		strcpy(gLastStream, data);
 		playLastStream();		
 	}
 }		 
 
 
-void cbAbout (GtkMenuItem *menuitem)
+void cbAbout(GtkMenuItem *menuitem)
 {
 	gchar* authors[] = {"Sergio Lo Cascio", NULL};
 	gchar comments[255];
@@ -263,20 +262,22 @@ static void cbMotionEvent(GtkWidget *widget, GdkEvent *event)
 	if (dragging == E_STARTING)
 	{
 		GdkWindow *window = gtk_widget_get_window (widget);
-		gdk_window_get_origin(window, &xwininitial, &ywininitial);
-		wwininitial = gdk_window_get_width(window);
-		hwininitial = gdk_window_get_height(window);
+		gdk_window_get_origin(window, &gxWinInitial, &gyWinInitial);
+		gwWinInitial = gdk_window_get_width(window);
+		ghWinInitial = gdk_window_get_height(window);
+
+		gint xinitial, yinitial;
 		xinitial = (int)ev->x_root;
 		yinitial = (int)ev->y_root;
 
 		char cursorName[16] = "move";
 		dragging = E_DRAGGING;
-		if (xinitial > xwininitial+wwininitial-RESIZEBORDER)
+		if (xinitial > gxWinInitial+gwWinInitial-RESIZEBORDER)
 		{
 			strcpy(cursorName, "e-resize");
 			dragging = E_RESIZING;
 		}
-		if (yinitial > ywininitial+hwininitial-RESIZEBORDER)
+		if (yinitial > gyWinInitial+ghWinInitial-RESIZEBORDER)
 		{
 			if (dragging == E_RESIZING)
 				strcpy(cursorName, "se-resize");
@@ -290,21 +291,21 @@ static void cbMotionEvent(GtkWidget *widget, GdkEvent *event)
 		setCursor(widget, cursorName);
 		
 		// optimization
-		xwininitial-=xinitial;
-		ywininitial-=yinitial;
-		wwininitial-=xinitial;
-		hwininitial-=yinitial;
+		gxWinInitial-=xinitial;
+		gyWinInitial-=yinitial;
+		gwWinInitial-=xinitial;
+		ghWinInitial-=yinitial;
 	}
 
 	if (dragging == E_DRAGGING)
 	{
 		GdkWindow *window = gtk_widget_get_window (widget);
-		gdk_window_move(window, xwininitial+(int)ev->x_root, ywininitial+(int)ev->y_root);
+		gdk_window_move(window, gxWinInitial+(int)ev->x_root, gyWinInitial+(int)ev->y_root);
 	}
 	else if (dragging == E_RESIZING)
 	{
 		GdkWindow *window = gtk_widget_get_window (widget);
-		gdk_window_resize(window, wwininitial+(int)ev->x_root, hwininitial+(int)ev->y_root);
+		gdk_window_resize(window, gwWinInitial+(int)ev->x_root, ghWinInitial+(int)ev->y_root);
 	}
 }
 
@@ -347,7 +348,6 @@ GtkWidget *addMenuItem(const gchar *label, GtkWidget *menu_shell, GCallback c_ha
 
 void playItemAdd(PlayItem *playItem, gpointer user_data)
 {
-//	PlayItem *playItem = (PlayItem*)data;
 	addMenuItem(playItem->title->str, user_data, G_CALLBACK (cbPlayUrl), playItem->url->str);
 }
 
@@ -391,12 +391,12 @@ static void create_ui()
 	gtk_container_add (GTK_CONTAINER (gMainWindow), video_window);
 //	gtk_layout_put(GTK_LAYOUT(layout), video_window, 0, 0);
 
-	gtk_window_set_default_size (GTK_WINDOW (gMainWindow), wwininitial, hwininitial);
+	gtk_window_set_default_size (GTK_WINDOW (gMainWindow), gwWinInitial, ghWinInitial);
 
 	gtk_window_set_decorated(gMainWindow, FALSE);
 	gtk_widget_show_all ((GtkWidget *)gMainWindow);
 
-	gtk_window_move(gMainWindow, xwininitial, ywininitial);
+	gtk_window_move(gMainWindow, gxWinInitial, gyWinInitial);
 
 	// Contextual menu
 	gContextualMenu = gtk_menu_new();
@@ -514,11 +514,11 @@ int main(int argc, char *argv[])
 		gIsPlaying = g_key_file_get_boolean(keyFileIni, "Global", "autostart", NULL);
 		gchar *ret = g_key_file_get_string(keyFileIni, "Global", "lastStream", NULL);
 		if (ret != NULL)
-			strcpy(lastStream, ret);
-		xwininitial = g_key_file_get_integer(keyFileIni, "Global", "initialX", NULL);
-		ywininitial = g_key_file_get_integer(keyFileIni, "Global", "initialY", NULL);
-		wwininitial = g_key_file_get_integer(keyFileIni, "Global", "initialW", NULL);
-		hwininitial = g_key_file_get_integer(keyFileIni, "Global", "initialH", NULL);
+			strcpy(gLastStream, ret);
+		gxWinInitial = g_key_file_get_integer(keyFileIni, "Global", "initialX", NULL);
+		gyWinInitial = g_key_file_get_integer(keyFileIni, "Global", "initialY", NULL);
+		gwWinInitial = g_key_file_get_integer(keyFileIni, "Global", "initialW", NULL);
+		ghWinInitial = g_key_file_get_integer(keyFileIni, "Global", "initialH", NULL);
 	}
 	else
 	{
@@ -529,11 +529,11 @@ int main(int argc, char *argv[])
 
 		// Default values
 		gIsPlaying = TRUE;
-		xwininitial = 0;
-		ywininitial = 0;
-		wwininitial = 320;
-		hwininitial = 200;
-		strcpy(lastStream, "http://ubuntu.hbr1.com:19800/trance.ogg");
+		gxWinInitial = 0;
+		gyWinInitial = 0;
+		gwWinInitial = 320;
+		ghWinInitial = 200;
+		strcpy(gLastStream, "http://ubuntu.hbr1.com:19800/trance.ogg");
 	}
 	g_key_file_free(keyFileIni);
 
@@ -551,7 +551,7 @@ int main(int argc, char *argv[])
 	g_signal_connect (G_OBJECT (bus), "message::eos", (GCallback)eos_cb, NULL);
 	gst_object_unref (bus);
 
-	g_object_set (gPlaybin, "uri", lastStream, NULL);
+	g_object_set (gPlaybin, "uri", gLastStream, NULL);
 	if (gIsPlaying)
 		playPlaybin();
 
