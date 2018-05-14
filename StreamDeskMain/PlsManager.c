@@ -88,6 +88,21 @@ GPtrArray *listPls(void)
 	return retVal;
 }
 
+int gSavePlsCounter;
+void savePlayItem(PlayItem *playItem, gpointer user_data)
+{
+	GKeyFile *keyFileIni = (GKeyFile *)user_data;
+	
+	gchar strTemp[16];
+	g_sprintf(strTemp, "File%d", gSavePlsCounter);
+	g_key_file_set_string(keyFileIni, "playlist", strTemp, playItem->url->str);
+
+	g_sprintf(strTemp, "Title%d", gSavePlsCounter);
+	g_key_file_set_string(keyFileIni, "playlist", strTemp, playItem->title->str);
+
+	gSavePlsCounter++;
+}
+
 
 void savePls(const gchar *plsName, GPtrArray *plsList)
 {
@@ -102,8 +117,8 @@ void savePls(const gchar *plsName, GPtrArray *plsList)
 
 	g_key_file_set_integer(keyFileIni, "playlist", "numberofentries", numEntries);
 
-
-//	g_ptr_array_foreach(gLocalPlayItemList, (GFunc)playItemAdd, localSubMenu);
+	gSavePlsCounter = 1;
+	g_ptr_array_foreach(plsList, (GFunc)savePlayItem, keyFileIni);
 
 
 	g_key_file_set_integer(keyFileIni, "playlist", "Version", 2);
