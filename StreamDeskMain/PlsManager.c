@@ -17,7 +17,6 @@
 GPtrArray *loadPls(const gchar *plsName)
 {
 	GPtrArray *retVal = g_ptr_array_new();
-	PlayItem *playItem = (PlayItem*)g_new(PlayItem, 1);
 
 	gchar strTemp[255];
 	g_sprintf(strTemp, "%s/%s/%s.pls", g_get_user_config_dir(), APPNAME, plsName);
@@ -32,20 +31,24 @@ GPtrArray *loadPls(const gchar *plsName)
 		
 		while (id <= numberofentries)
 		{
+			PlayItem *playItem = (PlayItem*)g_new(PlayItem, 1);
+			
 			g_sprintf(strTemp, "Title%d", id);
 			playItem->title = g_string_new(g_key_file_get_string(keyFilePls, "playlist", strTemp, NULL));
 			g_sprintf(strTemp, "File%d", id);
 			playItem->url = g_string_new(g_key_file_get_string(keyFilePls, "playlist", strTemp, NULL));
+//			if (playItem->url->len)
 			g_ptr_array_add(retVal, (gpointer)playItem);
 			id++;
 		}
 	}
-	else
-	{
-		playItem->title = g_string_new("<empty>");
-		playItem->url = g_string_new("");
-		g_ptr_array_add(retVal, (gpointer)playItem);
-	}
+//	else
+//	{
+//		PlayItem *playItem = (PlayItem*)g_new(PlayItem, 1);
+//		playItem->title = g_string_new("<empty>");
+//		playItem->url = g_string_new("");
+//		g_ptr_array_add(retVal, (gpointer)playItem);
+//	}
 
 	g_key_file_free(keyFilePls);
 
@@ -119,7 +122,6 @@ void savePls(const gchar *plsName, GPtrArray *plsList)
 
 	gSavePlsCounter = 1;
 	g_ptr_array_foreach(plsList, (GFunc)savePlayItem, keyFileIni);
-
 
 	g_key_file_set_integer(keyFileIni, "playlist", "Version", 2);
 
