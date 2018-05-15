@@ -4,6 +4,7 @@
 #include <string.h>
 
 #define MAX_LOCAL_ENTRIES 10
+
 //void deletePlsItem(gpointer data)
 //{
 //	PlayItem *playItem = (PlayItem *)data;
@@ -12,7 +13,6 @@
 //	if (playItem->url->len)
 //	g_string_free(playItem->url, TRUE);
 //}
-
 
 GPtrArray *loadPls(const gchar *plsName)
 {
@@ -37,18 +37,10 @@ GPtrArray *loadPls(const gchar *plsName)
 			playItem->title = g_string_new(g_key_file_get_string(keyFilePls, "playlist", strTemp, NULL));
 			g_sprintf(strTemp, "File%d", id);
 			playItem->url = g_string_new(g_key_file_get_string(keyFilePls, "playlist", strTemp, NULL));
-//			if (playItem->url->len)
 			g_ptr_array_add(retVal, (gpointer)playItem);
 			id++;
 		}
 	}
-//	else
-//	{
-//		PlayItem *playItem = (PlayItem*)g_new(PlayItem, 1);
-//		playItem->title = g_string_new("<empty>");
-//		playItem->url = g_string_new("");
-//		g_ptr_array_add(retVal, (gpointer)playItem);
-//	}
 
 	g_key_file_free(keyFilePls);
 

@@ -83,10 +83,10 @@ static void playPlaybin()
 		gtk_dialog_run(GTK_DIALOG (dialog));
 		gtk_widget_destroy (dialog);
 	}
-	gint n_video, n_audio;
-	g_object_get (gPlaybin, "n-video", &n_video, NULL);
-	g_object_get (gPlaybin, "n-audio", &n_audio, NULL);
-	g_print(">>>> nvideo: %d naudio: %d\n", n_video, n_audio);
+//	gint n_video, n_audio;
+//	g_object_get (gPlaybin, "n-video", &n_video, NULL);
+//	g_object_get (gPlaybin, "n-audio", &n_audio, NULL);
+//	g_print(">>>> nvideo: %d naudio: %d\n", n_video, n_audio);
 }
 
 
@@ -368,6 +368,25 @@ void playListAdd(GString *plsName, gpointer user_data)
 }
 
 
+/* This function is called everytime the video window needs to be redrawn (due to damage/exposure,
+ * rescaling, etc). GStreamer takes care of this in the PAUSED and PLAYING states, otherwise,
+ * we simply draw a black rectangle to avoid garbage showing up. */
+static gboolean draw_cb (GtkWidget *widget, cairo_t *cr) {
+  if (1) {
+    GtkAllocation allocation;
+
+    /* Cairo is a 2D graphics library which we use here to clean the video window.
+     * It is used by GStreamer for other reasons, so it will always be available to us. */
+    gtk_widget_get_allocation (widget, &allocation);
+    cairo_set_source_rgb (cr, 0, 1, 0);
+    cairo_rectangle (cr, 0, 0, allocation.width, allocation.height);
+    cairo_fill (cr);
+  }
+
+  return FALSE;
+}
+
+
 static void create_ui()
 {
 	// This creates all the GTK+ widgets that compose our application, and registers the callbacks
@@ -386,7 +405,7 @@ static void create_ui()
 	video_window = gtk_drawing_area_new ();
 	//gtk_widget_set_double_buffered (video_window, FALSE);
 	g_signal_connect (video_window, "realize", G_CALLBACK (realize_cb), NULL);
-	//~ g_signal_connect (video_window, "draw", G_CALLBACK (draw_cb), data);
+	g_signal_connect (video_window, "draw", G_CALLBACK (draw_cb), NULL);
 
 	gtk_container_add (GTK_CONTAINER (gMainWindow), video_window);
 //	gtk_layout_put(GTK_LAYOUT(layout), video_window, 0, 0);
@@ -421,25 +440,28 @@ static void create_ui()
  
  	gLocalPlayItemList = loadPls("Local");
 
-//	GdkPixbuf *iconBuf = gdk_pixbuf_new_from_xpm_data (icon);
-//	GtkWidget *gtkImage = gtk_image_new_from_pixbuf (iconBuf);
+	GdkPixbuf *iconBuf = gdk_pixbuf_new_from_xpm_data (icon);
+	GtkWidget *gtkImage = gtk_image_new_from_pixbuf (iconBuf);
+	gtk_container_add (GTK_CONTAINER (video_window), gtkImage);
 }
 
 
 /* This function is called when an "application" message is posted on the bus.
  * Here we retrieve the message posted by the tags_cb callback */
-static void application_cb (GstBus *bus, GstMessage *msg)
-{
-  if (g_strcmp0 (gst_structure_get_name (gst_message_get_structure (msg)), "tags-changed") == 0) {
-    /* If the message is the "tags-changed" (only one we are currently issuing), update
-     * the stream info GUI */
-		/* Read some properties */
-		gint n_video, n_audio;
-		g_object_get (gPlaybin, "n-video", &n_video, NULL);
-		g_object_get (gPlaybin, "n-audio", &n_audio, NULL);
-		g_print("nvideo: %d naudio: %d\n", n_video, n_audio);
-  }
-}
+//static void application_cb (GstBus *bus, GstMessage *msg)
+//{
+//	g_print("NEVER CALLED\n");
+////  if (g_strcmp0 (gst_structure_get_name (gst_message_get_structure (msg)), "tags-changed") == 0)
+////	{
+////    /* If the message is the "tags-changed" (only one we are currently issuing), update
+////     * the stream info GUI */
+////		/* Read some properties */
+////		gint n_video, n_audio;
+////		g_object_get (gPlaybin, "n-video", &n_video, NULL);
+////		g_object_get (gPlaybin, "n-audio", &n_audio, NULL);
+////		g_print("%s -- nvideo: %d naudio: %d\n", gst_structure_get_name (gst_message_get_structure (msg)), n_video, n_audio);
+////  }
+//}
 
 
 // This function is called when an error message is posted on the bus
@@ -477,6 +499,15 @@ static void tags_cb (GstElement *playbin, gint stream)
 		g_object_get (gPlaybin, "n-video", &n_video, NULL);
 		g_object_get (gPlaybin, "n-audio", &n_audio, NULL);
 		g_print("nvideo: %d naudio: %d\n", n_video, n_audio);
+		
+		if (n_video == 0)
+		{
+			// display application icon if not already displayed
+		}
+		else
+		{
+			// remove application icon if displayed
+		}
  /* We are possibly in a GStreamer working thread, so we notify the main
    * thread of this event through a message in the bus */
 //  gst_element_post_message (playbin,
@@ -546,7 +577,7 @@ int main(int argc, char *argv[])
 	// Instruct the bus to emit signals for each received message, and connect to the interesting signals
 	bus = gst_element_get_bus (gPlaybin);
 	gst_bus_add_signal_watch (bus);
-  g_signal_connect (G_OBJECT (bus), "message::application", (GCallback)application_cb, NULL);
+//  g_signal_connect (G_OBJECT (bus), "message::application", (GCallback)application_cb, NULL);
 	g_signal_connect (G_OBJECT (bus), "message::error", (GCallback)error_cb, NULL);
 	g_signal_connect (G_OBJECT (bus), "message::eos", (GCallback)eos_cb, NULL);
 	gst_object_unref (bus);
