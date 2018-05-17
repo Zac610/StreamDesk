@@ -15,6 +15,8 @@
 #include <gdk/gdkquartz.h>
 #endif
 
+#include <libappindicator/app-indicator.h>
+
 #include "icon.xpm.h"
 #include "PlsManager.h"
 #include "global.h"
@@ -556,6 +558,12 @@ int main(int argc, char *argv[])
 	if (gIsPlaying)
 		playPlaybin();
 
+  AppIndicator *indicator = app_indicator_new ("example-simple-client",
+                                 "indicator-messages",
+                                 APP_INDICATOR_CATEGORY_APPLICATION_STATUS);
+  app_indicator_set_status (indicator, APP_INDICATOR_STATUS_ACTIVE);
+  app_indicator_set_attention_icon (indicator, "indicator-messages-new");
+	
 	gtk_main ();
 
 	// Free resources
