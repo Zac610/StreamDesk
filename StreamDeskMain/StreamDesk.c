@@ -448,6 +448,18 @@ static void create_ui()
 	gtk_widget_show_all(gContextualMenu);
  
  	gLocalPlayItemList = loadPls("Local");
+	
+	gchar strTemp[255];
+	g_sprintf(strTemp, "%s/%s/", g_get_user_config_dir(), APPNAME);
+
+	AppIndicator *indicator = app_indicator_new_with_path("sd",
+                                 "icon",
+                                 APP_INDICATOR_CATEGORY_APPLICATION_STATUS, strTemp);
+  app_indicator_set_status (indicator, APP_INDICATOR_STATUS_ACTIVE);
+  app_indicator_set_attention_icon (indicator, "indicator-messages-new");
+	app_indicator_set_menu (indicator, GTK_MENU (gContextualMenu));
+	
+	gtk_window_set_skip_taskbar_hint(gMainWindow, TRUE);
 }
 
 
@@ -558,12 +570,6 @@ int main(int argc, char *argv[])
 	if (gIsPlaying)
 		playPlaybin();
 
-  AppIndicator *indicator = app_indicator_new ("example-simple-client",
-                                 "indicator-messages",
-                                 APP_INDICATOR_CATEGORY_APPLICATION_STATUS);
-  app_indicator_set_status (indicator, APP_INDICATOR_STATUS_ACTIVE);
-  app_indicator_set_attention_icon (indicator, "indicator-messages-new");
-	
 	gtk_main ();
 
 	// Free resources

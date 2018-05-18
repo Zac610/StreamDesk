@@ -8,7 +8,6 @@
     <File Name="PlsManager.c"/>
     <File Name="StreamDesk.c"/>
     <File Name="icon.xpm.h"/>
-    <File Name="../../TestAppIndicator.c"/>
   </VirtualDirectory>
   <Settings Type="Executable">
     <GlobalSettings>
