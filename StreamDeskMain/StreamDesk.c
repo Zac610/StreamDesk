@@ -1,7 +1,10 @@
 // Application ID: com.github.zac610.streamdesk
 // gcc StreamDesk.c -o StreamDesk `pkg-config --cflags --libs gstreamer-video-1.0 gtk+-3.0 gstreamer-1.0`
+//
+// This app can play audio and video streams on the desktop.
+// The only audio function makes this app very similiar to Radio Tray [http://radiotray.sourceforge.net/]
 #include <string.h>
-
+#include <glib/gprintf.h>
 #include <gtk/gtk.h>
 #include <gst/gst.h>
 #include <gst/video/videooverlay.h>
@@ -125,8 +128,8 @@ static void cbCloseApp (GtkWidget *widget, GdkEvent *event)
 	// save local playlist
 	savePls("Local", gLocalPlayItemList);
 
-  gst_element_set_state (gPlaybin, GST_STATE_READY);
-  gtk_main_quit ();
+	gst_element_set_state (gPlaybin, GST_STATE_READY);
+	gtk_main_quit ();
 }
 
 
@@ -149,11 +152,11 @@ void cbBrowseButtonClicked (GtkButton *button, gpointer parent_window)
 
 	res = gtk_dialog_run (GTK_DIALOG (dialog));
 	if (res == GTK_RESPONSE_ACCEPT)
-  {
-    GtkFileChooser *chooser = GTK_FILE_CHOOSER (dialog);
+	{
+		GtkFileChooser *chooser = GTK_FILE_CHOOSER (dialog);
 		sprintf(gLastStream, "file:%s", gtk_file_chooser_get_filename (chooser));
 		gtk_entry_set_text(GTK_ENTRY(data->entry), gLastStream);
-  }
+	}
 
 	gtk_widget_destroy (dialog);
 }
@@ -222,15 +225,15 @@ void cbAbout(GtkMenuItem *menuitem)
 	sprintf(comments, "Play audio/video data on your desktop.\n\nPlaylist directory is in %s/%s", g_get_user_config_dir(), APPNAME);
 	GdkPixbuf *logo = gdk_pixbuf_new_from_xpm_data (icon);
 	gtk_show_about_dialog (gMainWindow,
-                       "program-name", "StreamDesk",
-                       "logo", logo,
-                       "title", "Program Information",
-                       "authors", authors, 
-                       "comments", comments, 
-                       "website", "https://github.com/Zac610/StreamDesk", 
-                       "license-type", GTK_LICENSE_GPL_3_0,
-                       NULL);
-}						 
+												"program-name", "StreamDesk",
+												"logo", logo,
+												"title", "Program Information",
+												"authors", authors, 
+												"comments", comments, 
+												"website", "https://github.com/Zac610/StreamDesk", 
+												"license-type", GTK_LICENSE_GPL_3_0,
+												NULL);
+}
 
 
 static void cbButtonPressEvent(GtkWidget *widget, GdkEvent *event)
@@ -406,18 +409,12 @@ static void create_ui()
 	g_signal_connect (G_OBJECT (gMainWindow), "motion-notify-event", G_CALLBACK (cbMotionEvent), NULL);
 	g_signal_connect (G_OBJECT (gMainWindow), "key-press-event", G_CALLBACK (cbKeyPressEvent), NULL);
 
-//	GtkWidget *layout = gtk_layout_new(NULL, NULL);
-//	gtk_container_add(GTK_CONTAINER (main_window), layout);
-//  gtk_widget_show(layout);
-
-	GtkWidget *video_window; /* The drawing area where the video will be shown */
+	GtkWidget *video_window; // The drawing area where the video will be shown
 	video_window = gtk_drawing_area_new ();
-	//gtk_widget_set_double_buffered (video_window, FALSE);
 	g_signal_connect (video_window, "realize", G_CALLBACK (realize_cb), NULL);
 	g_signal_connect (video_window, "draw", G_CALLBACK (draw_cb), NULL);
 
 	gtk_container_add (GTK_CONTAINER (gMainWindow), video_window);
-//	gtk_layout_put(GTK_LAYOUT(layout), video_window, 0, 0);
 
 	gtk_window_set_default_size (GTK_WINDOW (gMainWindow), gwWinInitial, ghWinInitial);
 
@@ -447,18 +444,19 @@ static void create_ui()
 
 	gtk_widget_show_all(gContextualMenu);
  
- 	gLocalPlayItemList = loadPls("Local");
+	gLocalPlayItemList = loadPls("Local");
 	
+	// Icon on tray bar
 	gchar strTemp[255];
 	g_sprintf(strTemp, "%s/%s/", g_get_user_config_dir(), APPNAME);
 
-	AppIndicator *indicator = app_indicator_new_with_path("sd",
-                                 "icon",
-                                 APP_INDICATOR_CATEGORY_APPLICATION_STATUS, strTemp);
-  app_indicator_set_status (indicator, APP_INDICATOR_STATUS_ACTIVE);
-  app_indicator_set_attention_icon (indicator, "indicator-messages-new");
-	app_indicator_set_menu (indicator, GTK_MENU (gContextualMenu));
+	AppIndicator *indicator = app_indicator_new_with_path("sd", "icon", APP_INDICATOR_CATEGORY_APPLICATION_STATUS, strTemp);
+	app_indicator_set_status (indicator, APP_INDICATOR_STATUS_ACTIVE);
+	app_indicator_set_attention_icon (indicator, "indicator-messages-new");
+	app_indicator_set_menu (indicator, GTK_MENU (gContextualMenu)); // this instruction issues the following error:
+	// Gdk-CRITICAL **: gdk_window_thaw_toplevel_updates: assertion 'window->update_and_descendants_freeze_count > 0' failed
 	
+	// no presence in task bar
 	gtk_window_set_skip_taskbar_hint(gMainWindow, TRUE);
 }
 
@@ -485,8 +483,8 @@ static void error_cb (GstBus *bus, GstMessage *msg)
  * We just set the pipeline to READY (which stops playback) */
 static void eos_cb (GstBus *bus, GstMessage *msg)
 {
-  g_print ("End-Of-Stream reached.\n");
-  gst_element_set_state (gPlaybin, GST_STATE_READY);
+	g_print ("End-Of-Stream reached.\n");
+	gst_element_set_state (gPlaybin, GST_STATE_READY);
 }
 
 
@@ -561,7 +559,6 @@ int main(int argc, char *argv[])
 	// Instruct the bus to emit signals for each received message, and connect to the interesting signals
 	bus = gst_element_get_bus (gPlaybin);
 	gst_bus_add_signal_watch (bus);
-//  g_signal_connect (G_OBJECT (bus), "message::application", (GCallback)application_cb, NULL);
 	g_signal_connect (G_OBJECT (bus), "message::error", (GCallback)error_cb, NULL);
 	g_signal_connect (G_OBJECT (bus), "message::eos", (GCallback)eos_cb, NULL);
 	gst_object_unref (bus);
