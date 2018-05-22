@@ -36,6 +36,7 @@ enum DragState
 	E_RESIZING
 } dragging = E_NONE;
 
+// Global variables
 gboolean gIsPlaying; // TODO: check if can be used state of playbin
 gchar gLastStream[255] = ""; // TODO: check if can be used uri of playbin
 gint gxWinInitial, gyWinInitial;
@@ -45,8 +46,9 @@ GtkWidget *gContextualMenu;
 GstElement *gPlaybin;
 gint gNVideo = 0;
 GPtrArray *gLocalPlayItemList;
+AppIndicator *gIndicator;
 
-struct MyData
+struct OpenUrlDialogData
 {
 	GtkWidget *dialog;
 	GtkWidget *entry;
@@ -89,6 +91,8 @@ static void playPlaybin()
 		gtk_dialog_run(GTK_DIALOG (dialog));
 		gtk_widget_destroy (dialog);
 	}
+	else
+		app_indicator_set_status (gIndicator, APP_INDICATOR_STATUS_ACTIVE);
 }
 
 
@@ -135,7 +139,7 @@ static void cbCloseApp (GtkWidget *widget, GdkEvent *event)
 
 void cbBrowseButtonClicked (GtkButton *button, gpointer parent_window)
 {
-	struct MyData *data = (struct MyData *)parent_window;
+	struct OpenUrlDialogData *data = (struct OpenUrlDialogData *)parent_window;
 	
 	GtkWidget *dialog;
 	GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_OPEN;
@@ -185,7 +189,7 @@ void cbOpenUrl(GtkMenuItem *menuitem)
 	gtk_entry_set_text(GTK_ENTRY(entry), gLastStream);
 	gtk_container_add (GTK_CONTAINER (layout), entry);
 	GtkWidget *browseButton = gtk_button_new_with_label("...");
-	struct MyData data = {dialog, entry};
+	struct OpenUrlDialogData data = {dialog, entry};
 	g_signal_connect(G_OBJECT (browseButton), "clicked", G_CALLBACK(cbBrowseButtonClicked), &data);
 
 	gtk_container_add (GTK_CONTAINER (layout), browseButton);
@@ -327,6 +331,7 @@ static void cbKeyPressEvent (GtkWidget *widget, GdkEvent *event)
 				// pause stream
 				gIsPlaying = FALSE;
 				gst_element_set_state (gPlaybin, GST_STATE_PAUSED);
+				app_indicator_set_status (gIndicator, APP_INDICATOR_STATUS_ATTENTION);
 			}
 			else
 			{
@@ -375,6 +380,13 @@ void playListAdd(GString *plsName, gpointer user_data)
  * we simply draw a black rectangle to avoid garbage showing up. */
 static gboolean draw_cb (GtkWidget *widget, cairo_t *cr)
 {
+//	if (gNVideo)
+//		gtk_widget_show_all ((GtkWidget *)gMainWindow);
+//	else
+//		gtk_widget_hide((GtkWidget *)gMainWindow);
+//	
+//	return FALSE;
+	
 	if (gNVideo)
 		return FALSE; // redrawn not needed
 		
@@ -450,10 +462,11 @@ static void create_ui()
 	gchar strTemp[255];
 	g_sprintf(strTemp, "%s/%s/", g_get_user_config_dir(), APPNAME);
 
-	AppIndicator *indicator = app_indicator_new_with_path("sd", "icon", APP_INDICATOR_CATEGORY_APPLICATION_STATUS, strTemp);
-	app_indicator_set_status (indicator, APP_INDICATOR_STATUS_ACTIVE);
-	app_indicator_set_attention_icon (indicator, "indicator-messages-new");
-	app_indicator_set_menu (indicator, GTK_MENU (gContextualMenu)); // this instruction issues the following error:
+	gIndicator = app_indicator_new_with_path("sd", "icon", APP_INDICATOR_CATEGORY_APPLICATION_STATUS, strTemp);
+	app_indicator_set_icon_theme_path(gIndicator, strTemp);
+	app_indicator_set_status (gIndicator, APP_INDICATOR_STATUS_ATTENTION);
+	app_indicator_set_attention_icon (gIndicator, "icon-grey");
+	app_indicator_set_menu (gIndicator, GTK_MENU (gContextualMenu)); // this instruction issues the following error:
 	// Gdk-CRITICAL **: gdk_window_thaw_toplevel_updates: assertion 'window->update_and_descendants_freeze_count > 0' failed
 	
 	// no presence in task bar
