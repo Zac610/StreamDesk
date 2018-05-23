@@ -44,7 +44,7 @@ gint gwWinInitial, ghWinInitial;
 GtkWindow *gMainWindow;
 GtkWidget *gContextualMenu;
 GstElement *gPlaybin;
-gint gNVideo = 0;
+gboolean gIsVisible = TRUE;
 GPtrArray *gLocalPlayItemList;
 AppIndicator *gIndicator;
 
@@ -378,37 +378,42 @@ void playListAdd(GString *plsName, gpointer user_data)
 /* This function is called everytime the video window needs to be redrawn (due to damage/exposure,
  * rescaling, etc). GStreamer takes care of this in the PAUSED and PLAYING states, otherwise,
  * we simply draw a black rectangle to avoid garbage showing up. */
-static gboolean draw_cb (GtkWidget *widget, cairo_t *cr)
-{
+//static gboolean draw_cb(GtkWidget *widget, cairo_t *cr)
+//{
 //	if (gNVideo)
-//		gtk_widget_show_all ((GtkWidget *)gMainWindow);
+//	{
+//		g_print("show\n");
+//		gtk_widget_show((GtkWidget *)gMainWindow);
+//	}
 //	else
+//	{
+//		g_print("hide\n");
 //		gtk_widget_hide((GtkWidget *)gMainWindow);
-//	
+//	}
 //	return FALSE;
-	
-	if (gNVideo)
-		return FALSE; // redrawn not needed
-		
-	GtkAllocation allocation;
-
-	/* Cairo is a 2D graphics library which we use here to clean the video window.
-	 * It is used by GStreamer for other reasons, so it will always be available to us. */
-	gtk_widget_get_allocation (widget, &allocation);
-	cairo_set_source_rgb (cr, 77./255., 61./255., 77./255.);
-	cairo_rectangle (cr, 0, 0, allocation.width, allocation.height);
-	cairo_fill (cr);
-
-	GdkPixbuf *iconBuf = gdk_pixbuf_new_from_xpm_data (icon);
-	GdkWindow *window = gtk_widget_get_window (widget);
-	cairo_surface_t *imageSurface = gdk_cairo_surface_create_from_pixbuf(iconBuf, 0, window);
-	int xPos = (allocation.width  - gdk_pixbuf_get_width(iconBuf))/2;
-	int yPos = (allocation.height - gdk_pixbuf_get_height(iconBuf))/2;
-	cairo_set_source_surface(cr, imageSurface, xPos, yPos);
-	cairo_paint(cr);
-
-  return FALSE;
-}
+//	
+//	if (gNVideo)
+//		return FALSE; // redrawn not needed
+//		
+//	GtkAllocation allocation;
+//
+//	/* Cairo is a 2D graphics library which we use here to clean the video window.
+//	 * It is used by GStreamer for other reasons, so it will always be available to us. */
+//	gtk_widget_get_allocation (widget, &allocation);
+//	cairo_set_source_rgb (cr, 77./255., 61./255., 77./255.);
+//	cairo_rectangle (cr, 0, 0, allocation.width, allocation.height);
+//	cairo_fill (cr);
+//
+//	GdkPixbuf *iconBuf = gdk_pixbuf_new_from_xpm_data (icon);
+//	GdkWindow *window = gtk_widget_get_window (widget);
+//	cairo_surface_t *imageSurface = gdk_cairo_surface_create_from_pixbuf(iconBuf, 0, window);
+//	int xPos = (allocation.width  - gdk_pixbuf_get_width(iconBuf))/2;
+//	int yPos = (allocation.height - gdk_pixbuf_get_height(iconBuf))/2;
+//	cairo_set_source_surface(cr, imageSurface, xPos, yPos);
+//	cairo_paint(cr);
+//
+//  return FALSE;
+//}
 
 
 static void create_ui()
@@ -424,7 +429,7 @@ static void create_ui()
 	GtkWidget *video_window; // The drawing area where the video will be shown
 	video_window = gtk_drawing_area_new ();
 	g_signal_connect (video_window, "realize", G_CALLBACK (realize_cb), NULL);
-	g_signal_connect (video_window, "draw", G_CALLBACK (draw_cb), NULL);
+//	g_signal_connect (video_window, "draw", G_CALLBACK (draw_cb), NULL);
 
 	gtk_container_add (GTK_CONTAINER (gMainWindow), video_window);
 
@@ -475,7 +480,7 @@ static void create_ui()
 
 
 // This function is called when an error message is posted on the bus
-static void error_cb (GstBus *bus, GstMessage *msg)
+static void error_cb(GstBus *bus, GstMessage *msg)
 {
 	GError *err;
 	gchar *debug_info;
@@ -504,10 +509,27 @@ static void eos_cb (GstBus *bus, GstMessage *msg)
 // This function is called when new metadata is discovered in the stream
 static void tags_cb (GstElement *playbin, gint stream)
 {
-	gint oldVideo = gNVideo;
-	g_object_get (gPlaybin, "n-video", &gNVideo, NULL);
-	if (oldVideo != gNVideo)
-		gtk_widget_queue_draw((GtkWidget *)gMainWindow);
+	gint nVideo;
+	g_object_get (gPlaybin, "n-video", &nVideo, NULL);
+//	g_print("oldVideo: %d   gNVideo: %d\n", oldVideo, gNVideo);
+//	if (oldVideo != gNVideo)
+//		gtk_widget_queue_draw((GtkWidget *)gMainWindow);
+	if (nVideo)
+	{
+		if (!gIsVisible)
+		{
+			gtk_widget_show((GtkWidget *)gMainWindow);
+			gIsVisible = TRUE;
+		}
+	}
+	else
+	{
+		if (gIsVisible)
+		{
+			gtk_widget_hide((GtkWidget *)gMainWindow);
+			gIsVisible = FALSE;
+		}
+	}
 }
 
 
