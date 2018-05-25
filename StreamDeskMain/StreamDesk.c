@@ -47,6 +47,7 @@ GstElement *gPlaybin;
 gboolean gIsVisible = TRUE;
 GPtrArray *gLocalPlayItemList;
 AppIndicator *gIndicator;
+GdkScrollDirection gCurrentDirection;
 
 struct OpenUrlDialogData
 {
@@ -54,10 +55,33 @@ struct OpenUrlDialogData
 	GtkWidget *entry;
 };
 
+
+static void cbAppIndicatorScroll(AppIndicator *indicator, guint steps, GdkScrollDirection direction)
+{
+	if (direction == GDK_SCROLL_DOWN)
+		gCurrentDirection = GDK_SCROLL_DOWN;
+	else if (direction == GDK_SCROLL_UP)
+		gCurrentDirection = GDK_SCROLL_UP;
+	else if (direction == GDK_SCROLL_SMOOTH)
+	{
+		// manage volume
+		gdouble vol;
+		g_object_get(gPlaybin, "volume", &vol, NULL);
+		if (gCurrentDirection == GDK_SCROLL_DOWN)
+			vol-=0.1;
+		else
+			vol+=0.1;
+		if (vol < 0) vol = 0;
+		if (vol > 10) vol = 10;
+		g_object_set(gPlaybin, "volume", vol, NULL);
+	}
+}
+
+
 /* This function is called when the GUI toolkit creates the physical window that will hold the video.
  * At this point we can retrieve its handler (which has a different meaning depending on the windowing system)
  * and pass it to GStreamer through the VideoOverlay interface. */
-static void realize_cb (GtkWidget *widget)
+static void realize_cb(GtkWidget *widget)
 {
 	GdkWindow *window = gtk_widget_get_window (widget);
 	guintptr window_handle;
@@ -473,7 +497,7 @@ static void create_ui()
 	app_indicator_set_attention_icon (gIndicator, "icon-grey");
 	app_indicator_set_menu (gIndicator, GTK_MENU (gContextualMenu)); // this instruction issues the following error:
 	// Gdk-CRITICAL **: gdk_window_thaw_toplevel_updates: assertion 'window->update_and_descendants_freeze_count > 0' failed
-	
+	g_signal_connect (gIndicator, "scroll-event", G_CALLBACK (cbAppIndicatorScroll), NULL);
 	// no presence in task bar
 	gtk_window_set_skip_taskbar_hint(gMainWindow, TRUE);
 }
