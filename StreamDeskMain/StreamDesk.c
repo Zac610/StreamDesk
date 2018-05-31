@@ -494,7 +494,7 @@ static void create_ui()
 	gIndicator = app_indicator_new_with_path("sd", "icon", APP_INDICATOR_CATEGORY_APPLICATION_STATUS, strTemp);
 	app_indicator_set_icon_theme_path(gIndicator, strTemp);
 	app_indicator_set_status (gIndicator, APP_INDICATOR_STATUS_ATTENTION);
-	app_indicator_set_attention_icon (gIndicator, "icon-grey");
+	app_indicator_set_attention_icon (gIndicator, "icon-gray");
 	app_indicator_set_menu (gIndicator, GTK_MENU (gContextualMenu)); // this instruction issues the following error:
 	// Gdk-CRITICAL **: gdk_window_thaw_toplevel_updates: assertion 'window->update_and_descendants_freeze_count > 0' failed
 	g_signal_connect (gIndicator, "scroll-event", G_CALLBACK (cbAppIndicatorScroll), NULL);
@@ -576,11 +576,23 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
+	gchar confFilePath[255];
+
+	// Check if icons exist, otherwise create them
+	sprintf(confFilePath, "%s/%s/icon.png", g_get_user_config_dir(), APPNAME);
+	if (!g_file_test(confFilePath, G_FILE_TEST_EXISTS))
+	{
+		GdkPixbuf *logo = gdk_pixbuf_new_from_xpm_data (icon);
+		gdk_pixbuf_save(logo, confFilePath, "png", NULL, NULL);
+		gdk_pixbuf_saturate_and_pixelate(logo, logo, 0.0, FALSE);
+		sprintf(confFilePath, "%s/%s/icon-gray.png", g_get_user_config_dir(), APPNAME);
+		gdk_pixbuf_save(logo, confFilePath, "png", NULL, NULL);
+	}
+	
 	// Access the configuration file
+	sprintf(confFilePath, "%s/%s/%s", g_get_user_config_dir(), APPNAME, CONFFILENAME);
 	GKeyFile *keyFileIni = g_key_file_new ();
-	gchar confFile[255];
-	sprintf(confFile, "%s/%s/%s", g_get_user_config_dir(), APPNAME, CONFFILENAME);
-	gboolean keyFileFound = g_key_file_load_from_file(keyFileIni, confFile, G_KEY_FILE_NONE, NULL);
+	gboolean keyFileFound = g_key_file_load_from_file(keyFileIni, confFilePath, G_KEY_FILE_NONE, NULL);
 	if (keyFileFound)
 	{
 		gIsPlaying = g_key_file_get_boolean(keyFileIni, "Global", "autostart", NULL);
@@ -594,9 +606,9 @@ int main(int argc, char *argv[])
 	}
 	else
 	{
-		sprintf(confFile, "%s/%s", g_get_user_config_dir(), APPNAME);
+		sprintf(confFilePath, "%s/%s", g_get_user_config_dir(), APPNAME);
 		g_autoptr(GFile) gFile;
-		gFile = g_file_new_for_path (confFile);
+		gFile = g_file_new_for_path (confFilePath);
 		g_file_make_directory (gFile, NULL, NULL);
 
 		// Default values

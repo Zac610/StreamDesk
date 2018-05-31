@@ -5,6 +5,8 @@
 
 #define MAX_LOCAL_ENTRIES 10
 
+gint gSavePlsCounter;
+
 //void deletePlsItem(gpointer data)
 //{
 //	PlayItem *playItem = (PlayItem *)data;
@@ -83,7 +85,7 @@ GPtrArray *listPls(void)
 	return retVal;
 }
 
-int gSavePlsCounter;
+
 void savePlayItem(PlayItem *playItem, gpointer user_data)
 {
 	GKeyFile *keyFileIni = (GKeyFile *)user_data;
@@ -118,7 +120,6 @@ void savePls(const gchar *plsName, GPtrArray *plsList)
 	g_key_file_set_integer(keyFileIni, "playlist", "Version", 2);
 
 	g_key_file_save_to_file (keyFileIni, plsFile, NULL);
-
 }
 
 //void releasePlsData(GPtrArray *plsData)
