@@ -108,6 +108,9 @@ static void playPlaybin()
 	GstStateChangeReturn ret = gst_element_set_state (gPlaybin, GST_STATE_PLAYING);
 	if (ret == GST_STATE_CHANGE_FAILURE)
 	{
+		gIsPlaying = FALSE;
+		app_indicator_set_status (gIndicator, APP_INDICATOR_STATUS_ATTENTION);
+
 		gchar *strval;
 		g_object_get(gPlaybin, "uri", &strval, NULL);
 		
@@ -116,7 +119,10 @@ static void playPlaybin()
 		gtk_widget_destroy (dialog);
 	}
 	else
+	{
+		gIsPlaying = TRUE;
 		app_indicator_set_status (gIndicator, APP_INDICATOR_STATUS_ACTIVE);
+	}
 }
 
 
@@ -222,6 +228,9 @@ void cbOpenUrl(GtkMenuItem *menuitem)
 	GtkResponseType response = gtk_dialog_run(GTK_DIALOG (dialog));
 	if (response == GTK_RESPONSE_ACCEPT)
 	{
+//		gtk_widget_hide((GtkWidget *)gMainWindow);
+//		gIsVisible = FALSE;
+
 		strcpy(gLastStream, gtk_entry_get_text(GTK_ENTRY(entry)));
 		playLastStream();
 		
@@ -535,23 +544,22 @@ static void tags_cb (GstElement *playbin, gint stream)
 {
 	gint nVideo;
 	g_object_get (gPlaybin, "n-video", &nVideo, NULL);
-//	g_print("oldVideo: %d   gNVideo: %d\n", oldVideo, gNVideo);
-//	if (oldVideo != gNVideo)
-//		gtk_widget_queue_draw((GtkWidget *)gMainWindow);
 	if (nVideo)
 	{
 		if (!gIsVisible)
 		{
-			gtk_widget_show((GtkWidget *)gMainWindow);
 			gIsVisible = TRUE;
+			GdkWindow *window = gtk_widget_get_window (gMainWindow);
+			gdk_window_show(window);
 		}
 	}
 	else
 	{
 		if (gIsVisible)
 		{
-			gtk_widget_hide((GtkWidget *)gMainWindow);
 			gIsVisible = FALSE;
+			GdkWindow *window = gtk_widget_get_window (gMainWindow);
+			gdk_window_hide(window);
 		}
 	}
 }
