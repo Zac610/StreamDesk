@@ -188,7 +188,7 @@ void cbBrowseButtonClicked (GtkButton *button, gpointer parent_window)
 	if (res == GTK_RESPONSE_ACCEPT)
 	{
 		GtkFileChooser *chooser = GTK_FILE_CHOOSER (dialog);
-		sprintf(gLastStream, "file:%s", gtk_file_chooser_get_filename (chooser));
+		g_sprintf(gLastStream, "file:%s", gtk_file_chooser_get_filename (chooser));
 		gtk_entry_set_text(GTK_ENTRY(data->entry), gLastStream);
 	}
 
@@ -228,9 +228,6 @@ void cbOpenUrl(GtkMenuItem *menuitem)
 	GtkResponseType response = gtk_dialog_run(GTK_DIALOG (dialog));
 	if (response == GTK_RESPONSE_ACCEPT)
 	{
-//		gtk_widget_hide((GtkWidget *)gMainWindow);
-//		gIsVisible = FALSE;
-
 		strcpy(gLastStream, gtk_entry_get_text(GTK_ENTRY(entry)));
 		playLastStream();
 		
@@ -411,8 +408,8 @@ void playListAdd(GString *plsName, gpointer user_data)
 /* This function is called everytime the video window needs to be redrawn (due to damage/exposure,
  * rescaling, etc). GStreamer takes care of this in the PAUSED and PLAYING states, otherwise,
  * we simply draw a black rectangle to avoid garbage showing up. */
-//static gboolean draw_cb(GtkWidget *widget, cairo_t *cr)
-//{
+static gboolean draw_cb(GtkWidget *widget, cairo_t *cr)
+{
 //	if (gNVideo)
 //	{
 //		g_print("show\n");
@@ -428,25 +425,25 @@ void playListAdd(GString *plsName, gpointer user_data)
 //	if (gNVideo)
 //		return FALSE; // redrawn not needed
 //		
-//	GtkAllocation allocation;
-//
-//	/* Cairo is a 2D graphics library which we use here to clean the video window.
-//	 * It is used by GStreamer for other reasons, so it will always be available to us. */
-//	gtk_widget_get_allocation (widget, &allocation);
-//	cairo_set_source_rgb (cr, 77./255., 61./255., 77./255.);
-//	cairo_rectangle (cr, 0, 0, allocation.width, allocation.height);
-//	cairo_fill (cr);
-//
-//	GdkPixbuf *iconBuf = gdk_pixbuf_new_from_xpm_data (icon);
-//	GdkWindow *window = gtk_widget_get_window (widget);
-//	cairo_surface_t *imageSurface = gdk_cairo_surface_create_from_pixbuf(iconBuf, 0, window);
-//	int xPos = (allocation.width  - gdk_pixbuf_get_width(iconBuf))/2;
-//	int yPos = (allocation.height - gdk_pixbuf_get_height(iconBuf))/2;
-//	cairo_set_source_surface(cr, imageSurface, xPos, yPos);
-//	cairo_paint(cr);
-//
-//  return FALSE;
-//}
+	GtkAllocation allocation;
+
+	/* Cairo is a 2D graphics library which we use here to clean the video window.
+	 * It is used by GStreamer for other reasons, so it will always be available to us. */
+	gtk_widget_get_allocation (widget, &allocation);
+	cairo_set_source_rgb (cr, 77./255., 61./255., 77./255.);
+	cairo_rectangle (cr, 0, 0, allocation.width, allocation.height);
+	cairo_fill (cr);
+
+	GdkPixbuf *iconBuf = gdk_pixbuf_new_from_xpm_data (icon);
+	GdkWindow *window = gtk_widget_get_window (widget);
+	cairo_surface_t *imageSurface = gdk_cairo_surface_create_from_pixbuf(iconBuf, 0, window);
+	int xPos = (allocation.width  - gdk_pixbuf_get_width(iconBuf))/2;
+	int yPos = (allocation.height - gdk_pixbuf_get_height(iconBuf))/2;
+	cairo_set_source_surface(cr, imageSurface, xPos, yPos);
+	cairo_paint(cr);
+
+  return FALSE;
+}
 
 
 static void create_ui()
@@ -462,7 +459,7 @@ static void create_ui()
 	GtkWidget *video_window; // The drawing area where the video will be shown
 	video_window = gtk_drawing_area_new ();
 	g_signal_connect (video_window, "realize", G_CALLBACK (realize_cb), NULL);
-//	g_signal_connect (video_window, "draw", G_CALLBACK (draw_cb), NULL);
+	g_signal_connect (video_window, "draw", G_CALLBACK (draw_cb), NULL);
 
 	gtk_container_add (GTK_CONTAINER (gMainWindow), video_window);
 
@@ -515,18 +512,23 @@ static void create_ui()
 // This function is called when an error message is posted on the bus
 static void error_cb(GstBus *bus, GstMessage *msg)
 {
-	GError *err;
-	gchar *debug_info;
+	if (gLastStream[0] != '\0')
+	{
+		gLastStream[0] = '\0';
+		
+		gIsPlaying = FALSE;
+		gst_element_set_state (gPlaybin, GST_STATE_PAUSED);
+		app_indicator_set_status (gIndicator, APP_INDICATOR_STATUS_ATTENTION);
 
-	// Print error details on the screen
-	gst_message_parse_error (msg, &err, &debug_info);
-	g_printerr ("Error received from element %s: %s\n", GST_OBJECT_NAME (msg->src), err->message);
-	g_printerr ("Debugging information: %s\n", debug_info ? debug_info : "none");
-	g_clear_error (&err);
-	g_free (debug_info);
+		GError *err;
+		gst_message_parse_error (msg, &err, NULL);
 
-	// Set the pipeline to READY (which stops playback)
-	gst_element_set_state (gPlaybin, GST_STATE_READY);
+		GtkWidget* dialog = gtk_message_dialog_new (gMainWindow, GTK_DIALOG_MODAL, GTK_MESSAGE_WARNING, GTK_BUTTONS_CLOSE, "Error on stream:\n%s", err->message);
+		gtk_dialog_run(GTK_DIALOG (dialog));
+		gtk_widget_destroy (dialog);
+
+		g_clear_error (&err);
+	}
 }
 
 
@@ -549,7 +551,7 @@ static void tags_cb (GstElement *playbin, gint stream)
 		if (!gIsVisible)
 		{
 			gIsVisible = TRUE;
-			GdkWindow *window = gtk_widget_get_window (gMainWindow);
+			GdkWindow *window = gtk_widget_get_window((GtkWidget *)gMainWindow);
 			gdk_window_show(window);
 		}
 	}
@@ -558,7 +560,7 @@ static void tags_cb (GstElement *playbin, gint stream)
 		if (gIsVisible)
 		{
 			gIsVisible = FALSE;
-			GdkWindow *window = gtk_widget_get_window (gMainWindow);
+			GdkWindow *window = gtk_widget_get_window((GtkWidget *)gMainWindow);
 			gdk_window_hide(window);
 		}
 	}
