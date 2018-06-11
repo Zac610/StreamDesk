@@ -428,21 +428,9 @@ void playListAdd(GString *plsName, gpointer user_data)
  * we simply draw a black rectangle to avoid garbage showing up. */
 static gboolean draw_cb(GtkWidget *widget, cairo_t *cr)
 {
-//	if (gNVideo)
-//	{
-//		g_print("show\n");
-//		gtk_widget_show((GtkWidget *)gMainWindow);
-//	}
-//	else
-//	{
-//		g_print("hide\n");
-//		gtk_widget_hide((GtkWidget *)gMainWindow);
-//	}
-//	return FALSE;
-//	
-//	if (gNVideo)
-//		return FALSE; // redrawn not needed
-//		
+	if (gIsPlaying)
+		return TRUE;
+
 	GtkAllocation allocation;
 
 	/* Cairo is a 2D graphics library which we use here to clean the video window.
@@ -461,70 +449,6 @@ static gboolean draw_cb(GtkWidget *widget, cairo_t *cr)
 	cairo_paint(cr);
 
   return FALSE;
-}
-
-
-static void create_ui()
-{
-	// This creates all the GTK+ widgets that compose our application, and registers the callbacks
-	gMainWindow = (GtkWindow *)gtk_window_new (GTK_WINDOW_TOPLEVEL);
-	g_signal_connect (G_OBJECT (gMainWindow), "delete-event", G_CALLBACK (cbCloseApp), NULL);
-	g_signal_connect (G_OBJECT (gMainWindow), "button-press-event", G_CALLBACK (cbButtonPressEvent), NULL);
-	g_signal_connect (G_OBJECT (gMainWindow), "button-release-event", G_CALLBACK (cbButtonReleaseEvent), NULL);
-	g_signal_connect (G_OBJECT (gMainWindow), "motion-notify-event", G_CALLBACK (cbMotionEvent), NULL);
-	g_signal_connect (G_OBJECT (gMainWindow), "key-press-event", G_CALLBACK (cbKeyPressEvent), NULL);
-
-	GtkWidget *video_window; // The drawing area where the video will be shown
-	video_window = gtk_drawing_area_new ();
-	g_signal_connect (video_window, "realize", G_CALLBACK (realize_cb), NULL);
-	g_signal_connect (video_window, "draw", G_CALLBACK (draw_cb), NULL);
-
-	gtk_container_add (GTK_CONTAINER (gMainWindow), video_window);
-
-	gtk_window_set_default_size (GTK_WINDOW (gMainWindow), gwWinInitial, ghWinInitial);
-
-	gtk_window_set_keep_above(gMainWindow, TRUE);
-	gtk_window_set_decorated(gMainWindow, FALSE);
-	gtk_widget_show_all ((GtkWidget *)gMainWindow);
-
-	gtk_window_move(gMainWindow, gxWinInitial, gyWinInitial);
-
-	// Contextual menu
-	gContextualMenu = gtk_menu_new();
-
-	addMenuItem("Open URL...", gContextualMenu, G_CALLBACK (cbOpenUrl), NULL);
-
-	GtkWidget *streamsMenuItem = addMenuItem("Streams", gContextualMenu, NULL, NULL);
-	GtkWidget *streamsSubMenu = gtk_menu_new();
-	gtk_menu_item_set_submenu( GTK_MENU_ITEM(streamsMenuItem), streamsSubMenu);
-	
-	// Fills the local submenu
-	addPlsSubMenu("Local", streamsSubMenu);
-
-	GPtrArray *plsList = listPls();
-	g_ptr_array_foreach(plsList, (GFunc)playListAdd, streamsSubMenu);
-	g_ptr_array_free(plsList, TRUE);
-
-	addMenuItem("Info", gContextualMenu, G_CALLBACK (cbAbout), NULL);	
-	addMenuItem("Quit", gContextualMenu, G_CALLBACK (cbCloseApp), NULL);	
-
-	gtk_widget_show_all(gContextualMenu);
- 
-	gLocalPlayItemList = loadPls("Local");
-	
-	// Icon on tray bar
-	gchar strTemp[255];
-	g_sprintf(strTemp, "%s/%s/", g_get_user_config_dir(), APPNAME);
-
-	gIndicator = app_indicator_new_with_path("sd", "icon", APP_INDICATOR_CATEGORY_APPLICATION_STATUS, strTemp);
-	app_indicator_set_icon_theme_path(gIndicator, strTemp);
-	app_indicator_set_status (gIndicator, APP_INDICATOR_STATUS_ATTENTION);
-	app_indicator_set_attention_icon (gIndicator, "icon-gray");
-	app_indicator_set_menu (gIndicator, GTK_MENU (gContextualMenu)); // this instruction issues the following error:
-	// Gdk-CRITICAL **: gdk_window_thaw_toplevel_updates: assertion 'window->update_and_descendants_freeze_count > 0' failed
-	g_signal_connect (gIndicator, "scroll-event", G_CALLBACK (cbAppIndicatorScroll), NULL);
-	// no presence in task bar
-	gtk_window_set_skip_taskbar_hint(gMainWindow, TRUE);
 }
 
 
@@ -653,8 +577,68 @@ int main(int argc, char *argv[])
   g_signal_connect (G_OBJECT (gPlaybin), "video-tags-changed", (GCallback) tags_cb, NULL);
   g_signal_connect (G_OBJECT (gPlaybin), "audio-tags-changed", (GCallback) tags_cb, NULL);
 
+	/////////////////////////////////////////////////////////////////////////////////////////////
 	// Create the GUI
-	create_ui();
+	// This creates all the GTK+ widgets that compose our application, and registers the callbacks
+	gMainWindow = (GtkWindow *)gtk_window_new (GTK_WINDOW_TOPLEVEL);
+	g_signal_connect (G_OBJECT (gMainWindow), "delete-event", G_CALLBACK (cbCloseApp), NULL);
+	g_signal_connect (G_OBJECT (gMainWindow), "button-press-event", G_CALLBACK (cbButtonPressEvent), NULL);
+	g_signal_connect (G_OBJECT (gMainWindow), "button-release-event", G_CALLBACK (cbButtonReleaseEvent), NULL);
+	g_signal_connect (G_OBJECT (gMainWindow), "motion-notify-event", G_CALLBACK (cbMotionEvent), NULL);
+	g_signal_connect (G_OBJECT (gMainWindow), "key-press-event", G_CALLBACK (cbKeyPressEvent), NULL);
+
+	GtkWidget *video_window; // The drawing area where the video will be shown
+	video_window = gtk_drawing_area_new ();
+	g_signal_connect (video_window, "realize", G_CALLBACK (realize_cb), NULL);
+	g_signal_connect (video_window, "draw", G_CALLBACK (draw_cb), NULL);
+
+	gtk_container_add (GTK_CONTAINER (gMainWindow), video_window);
+
+	gtk_window_set_default_size (GTK_WINDOW (gMainWindow), gwWinInitial, ghWinInitial);
+
+	gtk_window_set_keep_above(gMainWindow, TRUE);
+	gtk_window_set_decorated(gMainWindow, FALSE);
+	gtk_widget_show_all ((GtkWidget *)gMainWindow);
+
+	gtk_window_move(gMainWindow, gxWinInitial, gyWinInitial);
+
+	// Contextual menu
+	gContextualMenu = gtk_menu_new();
+
+	addMenuItem("Open URL...", gContextualMenu, G_CALLBACK (cbOpenUrl), NULL);
+
+	GtkWidget *streamsMenuItem = addMenuItem("Streams", gContextualMenu, NULL, NULL);
+	GtkWidget *streamsSubMenu = gtk_menu_new();
+	gtk_menu_item_set_submenu( GTK_MENU_ITEM(streamsMenuItem), streamsSubMenu);
+	
+	// Fills the local submenu
+	addPlsSubMenu("Local", streamsSubMenu);
+
+	GPtrArray *plsList = listPls();
+	g_ptr_array_foreach(plsList, (GFunc)playListAdd, streamsSubMenu);
+	g_ptr_array_free(plsList, TRUE);
+
+	addMenuItem("Info", gContextualMenu, G_CALLBACK (cbAbout), NULL);	
+	addMenuItem("Quit", gContextualMenu, G_CALLBACK (cbCloseApp), NULL);	
+
+	gtk_widget_show_all(gContextualMenu);
+ 
+	gLocalPlayItemList = loadPls("Local");
+	
+	// Icon on tray bar
+	gchar strTemp[255];
+	g_sprintf(strTemp, "%s/%s/", g_get_user_config_dir(), APPNAME);
+
+	gIndicator = app_indicator_new_with_path("sd", "icon", APP_INDICATOR_CATEGORY_APPLICATION_STATUS, strTemp);
+	app_indicator_set_icon_theme_path(gIndicator, strTemp);
+	app_indicator_set_status (gIndicator, APP_INDICATOR_STATUS_ATTENTION);
+	app_indicator_set_attention_icon (gIndicator, "icon-gray");
+	app_indicator_set_menu (gIndicator, GTK_MENU (gContextualMenu)); // this instruction issues the following error:
+	// Gdk-CRITICAL **: gdk_window_thaw_toplevel_updates: assertion 'window->update_and_descendants_freeze_count > 0' failed
+	g_signal_connect (gIndicator, "scroll-event", G_CALLBACK (cbAppIndicatorScroll), NULL);
+	// no presence in task bar
+	gtk_window_set_skip_taskbar_hint(gMainWindow, TRUE);
+	/////////////////////////////////////////////////////////////////////////////////////////////
 
 	// Instruct the bus to emit signals for each received message, and connect to the interesting signals
 	bus = gst_element_get_bus (gPlaybin);
