@@ -48,6 +48,7 @@ gboolean gIsVisible = TRUE;
 GPtrArray *gLocalPlayItemList;
 AppIndicator *gIndicator;
 GdkScrollDirection gCurrentDirection;
+gboolean gIsFullscreen = FALSE;
 
 struct OpenUrlDialogData
 {
@@ -273,10 +274,27 @@ void cbAbout(GtkMenuItem *menuitem)
 static void cbButtonPressEvent(GtkWidget *widget, GdkEvent *event)
 {
 	GdkEventButton *ev = (GdkEventButton *)event;
-	if (ev->button == 1) // left mouse button
-		dragging = E_STARTING;
-	else if (ev->button == 3) // right mouse button
-		gtk_menu_popup((GtkMenu *)gContextualMenu, NULL, NULL, NULL, NULL, 0, gtk_get_current_event_time());
+	
+	if (ev->type == GDK_BUTTON_PRESS)
+	{
+		if (ev->button == 1) // left mouse button
+			dragging = E_STARTING;
+		else if (ev->button == 3) // right mouse button
+			gtk_menu_popup((GtkMenu *)gContextualMenu, NULL, NULL, NULL, NULL, 0, gtk_get_current_event_time());
+	}
+	else
+	{
+		if (gIsFullscreen)
+		{
+			gIsFullscreen = FALSE;
+			gtk_window_unfullscreen(gMainWindow);
+		}
+		else
+		{
+			gIsFullscreen = TRUE;
+			gtk_window_fullscreen(gMainWindow);
+		}
+	}
 }
 
 
@@ -449,7 +467,7 @@ static gboolean draw_cb(GtkWidget *widget, cairo_t *cr)
 static void create_ui()
 {
 	// This creates all the GTK+ widgets that compose our application, and registers the callbacks
-	gMainWindow = (GtkWindow *)gtk_window_new (GTK_WINDOW_TOPLEVEL); //GTK_WINDOW_POPUP
+	gMainWindow = (GtkWindow *)gtk_window_new (GTK_WINDOW_TOPLEVEL);
 	g_signal_connect (G_OBJECT (gMainWindow), "delete-event", G_CALLBACK (cbCloseApp), NULL);
 	g_signal_connect (G_OBJECT (gMainWindow), "button-press-event", G_CALLBACK (cbButtonPressEvent), NULL);
 	g_signal_connect (G_OBJECT (gMainWindow), "button-release-event", G_CALLBACK (cbButtonReleaseEvent), NULL);
@@ -465,6 +483,7 @@ static void create_ui()
 
 	gtk_window_set_default_size (GTK_WINDOW (gMainWindow), gwWinInitial, ghWinInitial);
 
+	gtk_window_set_keep_above(gMainWindow, TRUE);
 	gtk_window_set_decorated(gMainWindow, FALSE);
 	gtk_widget_show_all ((GtkWidget *)gMainWindow);
 
