@@ -16,12 +16,12 @@ gint gSavePlsCounter;
 //	g_string_free(playItem->url, TRUE);
 //}
 
-GPtrArray *loadPls(const gchar *plsName)
+GPtrArray *loadPls(const gchar *plsDir, const gchar *plsName)
 {
 	GPtrArray *retVal = g_ptr_array_new();
 
 	gchar strTemp[255];
-	g_sprintf(strTemp, "%s/%s/%s.pls", g_get_user_config_dir(), APPNAME, plsName);
+	g_sprintf(strTemp, "%s/%s.pls", plsDir, plsName);
 
 	GKeyFile *keyFilePls = g_key_file_new ();
 
@@ -59,17 +59,17 @@ void deleteStringItem(gpointer data)
 }
 
 
-GPtrArray *listPls(void)
+GPtrArray *listPls(const gchar *plsDir)
 {
 	GPtrArray *retVal = g_ptr_array_new();
-	gchar strTemp[255];
-	g_sprintf(strTemp, "%s/%s/", g_get_user_config_dir(), APPNAME);
+//	gchar strTemp[255];
+//	g_sprintf(strTemp, "%s/%s/", g_get_user_config_dir(), APPNAME);
 
 	GDir *dir;
 	GError *error;
 	const gchar *filename;
 
-	dir = g_dir_open(strTemp, 0, &error);
+	dir = g_dir_open(plsDir, 0, &error);
 	while ((filename = g_dir_read_name(dir)))
 		if (g_str_has_suffix (filename, ".pls"))
 		{
@@ -88,6 +88,9 @@ GPtrArray *listPls(void)
 
 void savePlayItem(PlayItem *playItem, gpointer user_data)
 {
+//	if (playItem->url->len == 0)
+//		return;
+	
 	GKeyFile *keyFileIni = (GKeyFile *)user_data;
 	
 	gchar strTemp[16];

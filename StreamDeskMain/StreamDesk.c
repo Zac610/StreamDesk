@@ -27,6 +27,7 @@
 static const gchar CONFFILENAME[] = "settings.ini";
 
 static const int RESIZEBORDER = 20;
+static const double VOLUMESTEP = 0.002;
 
 enum DragState
 {
@@ -39,6 +40,7 @@ enum DragState
 // Global variables
 gboolean gIsPlaying; // TODO: check if can be used state of playbin
 gchar gLastStream[255] = ""; // TODO: check if can be used uri of playbin
+gchar gPlsDir[255] = "";
 gint gxWinInitial, gyWinInitial;
 gint gwWinInitial, ghWinInitial;
 GtkWindow *gMainWindow;
@@ -69,9 +71,9 @@ static void cbAppIndicatorScroll(AppIndicator *indicator, guint steps, GdkScroll
 		gdouble vol;
 		g_object_get(gPlaybin, "volume", &vol, NULL);
 		if (gCurrentDirection == GDK_SCROLL_DOWN)
-			vol-=0.1;
+			vol-=VOLUMESTEP;
 		else
-			vol+=0.1;
+			vol+=VOLUMESTEP;
 		if (vol < 0) vol = 0;
 		if (vol > 10) vol = 10;
 		g_object_set(gPlaybin, "volume", vol, NULL);
@@ -142,6 +144,8 @@ static void cbCloseApp (GtkWidget *widget, GdkEvent *event)
 {
 	// Save app state
 	g_autoptr(GKeyFile) keyFileIni = g_key_file_new ();
+	g_key_file_set_string(keyFileIni, "Global", "plsDir", gPlsDir);
+
 	g_key_file_set_boolean(keyFileIni, "Global", "autostart", gIsPlaying);
 
 	g_key_file_set_string(keyFileIni, "Global", "lastStream", gLastStream);
@@ -257,7 +261,7 @@ void cbAbout(GtkMenuItem *menuitem)
 {
 	gchar* authors[] = {"Sergio Lo Cascio", NULL};
 	gchar comments[255];
-	sprintf(comments, "Play audio/video data on your desktop.\n\nPlaylist directory is in %s/%s", g_get_user_config_dir(), APPNAME);
+	sprintf(comments, "Play audio/video data on your desktop.\n\nPlaylist directory is in %s", gPlsDir);
 	GdkPixbuf *logo = gdk_pixbuf_new_from_xpm_data (icon);
 	gtk_show_about_dialog (gMainWindow,
 												"program-name", "StreamDesk",
@@ -409,7 +413,7 @@ void playItemAdd(PlayItem *playItem, gpointer user_data)
 
 void addPlsSubMenu(const gchar* plsName, GtkWidget *streamsSubMenu)
 {
-	GPtrArray *playItemList = loadPls(plsName);
+	GPtrArray *playItemList = loadPls(gPlsDir, plsName);
 	GtkWidget *localSubMenu = gtk_menu_new();
 	GtkWidget *localMenuItem = addMenuItem(plsName, streamsSubMenu, NULL, NULL);
 	gtk_menu_item_set_submenu( GTK_MENU_ITEM(localMenuItem), localSubMenu);
@@ -548,8 +552,12 @@ int main(int argc, char *argv[])
 	gboolean keyFileFound = g_key_file_load_from_file(keyFileIni, confFilePath, G_KEY_FILE_NONE, NULL);
 	if (keyFileFound)
 	{
+		gchar *ret;
+		ret = g_key_file_get_string(keyFileIni, "Global", "plsDir", NULL);
+		if (ret != NULL)
+			strcpy(gPlsDir, ret);		
 		gIsPlaying = g_key_file_get_boolean(keyFileIni, "Global", "autostart", NULL);
-		gchar *ret = g_key_file_get_string(keyFileIni, "Global", "lastStream", NULL);
+		ret = g_key_file_get_string(keyFileIni, "Global", "lastStream", NULL);
 		if (ret != NULL)
 			strcpy(gLastStream, ret);
 		gxWinInitial = g_key_file_get_integer(keyFileIni, "Global", "initialX", NULL);
@@ -565,6 +573,7 @@ int main(int argc, char *argv[])
 		g_file_make_directory (gFile, NULL, NULL);
 
 		// Default values
+		sprintf(gPlsDir, "%s", g_get_user_special_dir(G_USER_DIRECTORY_MUSIC));
 		gIsPlaying = TRUE;
 		gxWinInitial = 0;
 		gyWinInitial = 0;
@@ -614,7 +623,7 @@ int main(int argc, char *argv[])
 	// Fills the local submenu
 	addPlsSubMenu("Local", streamsSubMenu);
 
-	GPtrArray *plsList = listPls();
+	GPtrArray *plsList = listPls(gPlsDir);
 	g_ptr_array_foreach(plsList, (GFunc)playListAdd, streamsSubMenu);
 	g_ptr_array_free(plsList, TRUE);
 
@@ -623,7 +632,8 @@ int main(int argc, char *argv[])
 
 	gtk_widget_show_all(gContextualMenu);
  
-	gLocalPlayItemList = loadPls("Local");
+	sprintf(confFilePath, "%s/%s", g_get_user_config_dir(), APPNAME);
+	gLocalPlayItemList = loadPls(confFilePath, "Local");
 	
 	// Icon on tray bar
 	gchar strTemp[255];
