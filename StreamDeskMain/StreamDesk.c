@@ -244,7 +244,7 @@ void cbOpenUrl(GtkMenuItem *menuitem)
 	}
 	gtk_widget_destroy (entry);
 	gtk_widget_destroy (dialog);
-}				
+}
 
 
 void cbPlayUrl(GtkMenuItem *menuitem, gpointer data)
@@ -252,9 +252,9 @@ void cbPlayUrl(GtkMenuItem *menuitem, gpointer data)
 	if (data)
 	{
 		strcpy(gLastStream, data);
-		playLastStream();		
+		playLastStream();
 	}
-}		 
+}
 
 
 void cbAbout(GtkMenuItem *menuitem)
@@ -363,7 +363,25 @@ static void cbMotionEvent(GtkWidget *widget, GdkEvent *event)
 	else if (dragging == E_RESIZING)
 	{
 		GdkWindow *window = gtk_widget_get_window (widget);
-		gdk_window_resize(window, gwWinInitial+(int)ev->x_root, ghWinInitial+(int)ev->y_root);
+
+		gdouble currentW = gdk_window_get_width(window);
+		gdouble currentH = gdk_window_get_height(window);
+
+		gdouble windowW = gwWinInitial+ev->x_root;
+		gdouble windowH = ghWinInitial+ev->y_root;
+		
+		gdouble calcW = windowH*currentW/currentH;
+		gdouble calcH = windowW*currentH/currentW;
+		
+		g_print("currentW: %f, currentH:%f, windowW: %f, windowH: %f, calcW: %f, calcH: %f\n", currentW, currentH, windowW, windowH, calcW, calcH);
+		
+		if (calcW > windowW)
+			calcW = windowW;
+		
+		if (calcH > windowH)
+			calcH = windowH;
+		
+		gdk_window_resize(window, calcW, calcH);
 	}
 }
 
@@ -411,19 +429,20 @@ void playItemAdd(PlayItem *playItem, gpointer user_data)
 }
 
 
-void addPlsSubMenu(const gchar* plsName, GtkWidget *streamsSubMenu)
+GPtrArray *addPlsSubMenu(const gchar* plsDir, const gchar* plsName, GtkWidget *streamsSubMenu)
 {
-	GPtrArray *playItemList = loadPls(gPlsDir, plsName);
+	GPtrArray *playItemList = loadPls(plsDir, plsName);
 	GtkWidget *localSubMenu = gtk_menu_new();
 	GtkWidget *localMenuItem = addMenuItem(plsName, streamsSubMenu, NULL, NULL);
 	gtk_menu_item_set_submenu( GTK_MENU_ITEM(localMenuItem), localSubMenu);
 	g_ptr_array_foreach(playItemList, (GFunc)playItemAdd, localSubMenu);
+	return playItemList; // used only for the local playlist
 }
 
 
 void playListAdd(GString *plsName, gpointer user_data)
 {
-	addPlsSubMenu(plsName->str, (GtkWidget *)user_data);
+	addPlsSubMenu(gPlsDir, plsName->str, (GtkWidget *)user_data);
 }
 
 
@@ -621,7 +640,8 @@ int main(int argc, char *argv[])
 	gtk_menu_item_set_submenu( GTK_MENU_ITEM(streamsMenuItem), streamsSubMenu);
 	
 	// Fills the local submenu
-	addPlsSubMenu("Local", streamsSubMenu);
+	sprintf(confFilePath, "%s/%s", g_get_user_config_dir(), APPNAME);
+	gLocalPlayItemList = addPlsSubMenu(confFilePath, "Local", streamsSubMenu);
 
 	GPtrArray *plsList = listPls(gPlsDir);
 	g_ptr_array_foreach(plsList, (GFunc)playListAdd, streamsSubMenu);
@@ -631,10 +651,7 @@ int main(int argc, char *argv[])
 	addMenuItem("Quit", gContextualMenu, G_CALLBACK (cbCloseApp), NULL);	
 
 	gtk_widget_show_all(gContextualMenu);
- 
-	sprintf(confFilePath, "%s/%s", g_get_user_config_dir(), APPNAME);
-	gLocalPlayItemList = loadPls(confFilePath, "Local");
-	
+ 	
 	// Icon on tray bar
 	gchar strTemp[255];
 	g_sprintf(strTemp, "%s/%s/", g_get_user_config_dir(), APPNAME);
