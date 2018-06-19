@@ -39,10 +39,12 @@ enum DragState
 
 // Global variables
 gboolean gIsPlaying; // TODO: check if can be used state of playbin
+gboolean gIsNewStream;
 gchar gLastStream[255] = ""; // TODO: check if can be used uri of playbin
 gchar gPlsDir[255] = "";
 gint gxWinInitial, gyWinInitial;
 gint gwWinInitial, ghWinInitial;
+gint gwVideo, ghVideo;
 GtkWindow *gMainWindow;
 GtkWidget *gContextualMenu;
 GstElement *gPlaybin;
@@ -124,6 +126,7 @@ static void playPlaybin()
 	else
 	{
 		gIsPlaying = TRUE;
+		gIsNewStream = TRUE;
 		app_indicator_set_status (gIndicator, APP_INDICATOR_STATUS_ACTIVE);
 	}
 }
@@ -362,10 +365,9 @@ static void cbMotionEvent(GtkWidget *widget, GdkEvent *event)
 	}
 	else if (dragging == E_RESIZING)
 	{
-		GdkWindow *window = gtk_widget_get_window (widget);
-
-		gdouble currentW = gdk_window_get_width(window);
-		gdouble currentH = gdk_window_get_height(window);
+		// Maintain aspect ratio
+		gdouble currentW = gwVideo;
+		gdouble currentH = ghVideo;
 
 		gdouble windowW = gwWinInitial+ev->x_root;
 		gdouble windowH = ghWinInitial+ev->y_root;
@@ -373,14 +375,15 @@ static void cbMotionEvent(GtkWidget *widget, GdkEvent *event)
 		gdouble calcW = windowH*currentW/currentH;
 		gdouble calcH = windowW*currentH/currentW;
 		
-		g_print("currentW: %f, currentH:%f, windowW: %f, windowH: %f, calcW: %f, calcH: %f\n", currentW, currentH, windowW, windowH, calcW, calcH);
-		
 		if (calcW > windowW)
 			calcW = windowW;
 		
 		if (calcH > windowH)
 			calcH = windowH;
+
+//		g_print("currentW: %f, currentH:%f, windowW: %f, windowH: %f, calcW: %f, calcH: %f\n", currentW, currentH, windowW, windowH, calcW, calcH);
 		
+		GdkWindow *window = gtk_widget_get_window (widget);
 		gdk_window_resize(window, calcW, calcH);
 	}
 }
@@ -514,6 +517,48 @@ static void tags_cb (GstElement *playbin, gint stream)
 	g_object_get (gPlaybin, "n-video", &nVideo, NULL);
 	if (nVideo)
 	{
+		// Save the new video stream dimensions and resize window with the new aspect ratio 
+		if (gIsNewStream)
+		{
+			GstPad *pad;
+			g_signal_emit_by_name (playbin, "get-video-pad", 0, &pad, NULL);
+			if (pad)
+			{
+				GstCaps *caps = NULL;
+				caps = gst_pad_get_current_caps (pad);
+				if (caps)
+				{
+					const GstStructure *str;
+					str = gst_caps_get_structure (caps, 0);
+					if (gst_structure_get_int (str, "width", &gwVideo) && gst_structure_get_int (str, "height", &ghVideo))
+					{
+						gIsNewStream = FALSE;
+						g_print ("The video size of this set of capabilities is %d x %d\n", gwVideo, ghVideo);
+						
+						// Initial resize
+						GdkWindow *window = gtk_widget_get_window ((GtkWidget *)gMainWindow);
+						gdouble currentW = gwVideo;
+						gdouble currentH = ghVideo;
+
+						gdouble windowW = gdk_window_get_width(window);
+						gdouble windowH = gdk_window_get_height(window);
+						
+						gdouble calcW = windowH*currentW/currentH;
+						gdouble calcH = windowW*currentH/currentW;
+						
+						if (calcW > windowW)
+							calcW = windowW;
+						
+						if (calcH > windowH)
+							calcH = windowH;
+
+						gdk_window_resize(window, calcW, calcH);
+						gIsVisible = FALSE; // force redraw
+					}
+				}
+			}
+		}
+		
 		if (!gIsVisible)
 		{
 			gIsVisible = TRUE;
