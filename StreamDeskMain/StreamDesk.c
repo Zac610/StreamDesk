@@ -578,15 +578,17 @@ static void tags_cb (GstElement *playbin, gint stream)
 }
 
 
-int main(int argc, char *argv[])
+//int main(int argc, char *argv[])
+static void activate(GApplication *app, gpointer user_data)
 {
+	// prevent other instances of the application to work
+	// even if multi-instance running is interesting, as it create a sort of videowall,
+	// the menu commands will be issued only to the local instance.
+	static gboolean instance = 0;
+	if (instance) return;
+	instance++;
+	
 	GstBus *bus;
-
-	/* Initialize GTK */
-	gtk_init (&argc, &argv);
-
-	/* Initialize GStreamer */
-	gst_init (&argc, &argv);
 
 	/* Create the elements */
 	gPlaybin = gst_element_factory_make ("playbin", "playbin");
@@ -594,7 +596,7 @@ int main(int argc, char *argv[])
 	if (!gPlaybin)
 	{
 		g_printerr ("Not all elements could be created.\n");
-		return -1;
+		return;
 	}
 
 	gchar confFilePath[255];
@@ -728,5 +730,25 @@ int main(int argc, char *argv[])
 	// Free resources
 	gst_element_set_state (gPlaybin, GST_STATE_NULL);
 	gst_object_unref (gPlaybin);
-	return 0;
+//	return 0;
+}
+
+
+int main (int argc, char **argv)
+{
+ 	/* Initialize GTK */
+	gtk_init (&argc, &argv);
+
+	/* Initialize GStreamer */
+	gst_init (&argc, &argv);
+
+	GtkApplication *app;
+  int status;
+
+  app = gtk_application_new ("com.github.zac610.streamdesk", G_APPLICATION_FLAGS_NONE);
+  g_signal_connect (app, "activate", G_CALLBACK (activate), NULL);
+  status = g_application_run (G_APPLICATION (app), argc, argv);
+  g_object_unref (app);
+
+  return status;
 }
