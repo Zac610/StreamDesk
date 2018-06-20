@@ -38,6 +38,7 @@ enum DragState
 } dragging = E_NONE;
 
 // Global variables
+GtkApplication *gApp;
 gboolean gIsPlaying; // TODO: check if can be used state of playbin
 gboolean gIsNewStream;
 gchar gLastStream[255] = ""; // TODO: check if can be used uri of playbin
@@ -59,6 +60,21 @@ struct OpenUrlDialogData
 	GtkWidget *dialog;
 	GtkWidget *entry;
 };
+
+
+void issueNotification(const gchar *msg)
+{
+	GNotification *notification;
+	GdkPixbuf *logo = gdk_pixbuf_new_from_xpm_data (icon);
+
+	notification = g_notification_new (APPNAME);
+	g_notification_set_body (notification, msg);
+	g_notification_set_icon (notification, G_ICON (logo));
+
+	g_application_send_notification ((GApplication *)gApp, "lunch-is-ready", notification);
+	g_object_unref (logo);
+	g_object_unref (notification);
+}
 
 
 static void cbAppIndicatorScroll(AppIndicator *indicator, guint steps, GdkScrollDirection direction)
@@ -483,8 +499,6 @@ static void error_cb(GstBus *bus, GstMessage *msg)
 {
 	if (gLastStream[0] != '\0')
 	{
-		gLastStream[0] = '\0';
-		
 		gIsPlaying = FALSE;
 		gst_element_set_state (gPlaybin, GST_STATE_PAUSED);
 		app_indicator_set_status (gIndicator, APP_INDICATOR_STATUS_ATTENTION);
@@ -492,11 +506,13 @@ static void error_cb(GstBus *bus, GstMessage *msg)
 		GError *err;
 		gst_message_parse_error (msg, &err, NULL);
 
-		GtkWidget* dialog = gtk_message_dialog_new (gMainWindow, GTK_DIALOG_MODAL, GTK_MESSAGE_WARNING, GTK_BUTTONS_CLOSE, "Error on stream:\n%s", err->message);
-		gtk_dialog_run(GTK_DIALOG (dialog));
-		gtk_widget_destroy (dialog);
+		gchar msg[255];
+		sprintf(msg, "Error on stream\n%s\n%s", gLastStream, err->message);
+		issueNotification(msg);
 
 		g_clear_error (&err);
+
+		gLastStream[0] = '\0';
 	}
 }
 
@@ -742,13 +758,12 @@ int main (int argc, char **argv)
 	/* Initialize GStreamer */
 	gst_init (&argc, &argv);
 
-	GtkApplication *app;
   int status;
 
-  app = gtk_application_new ("com.github.zac610.streamdesk", G_APPLICATION_FLAGS_NONE);
-  g_signal_connect (app, "activate", G_CALLBACK (activate), NULL);
-  status = g_application_run (G_APPLICATION (app), argc, argv);
-  g_object_unref (app);
+  gApp = gtk_application_new ("com.github.zac610.streamdesk", G_APPLICATION_FLAGS_NONE);
+  g_signal_connect (gApp, "activate", G_CALLBACK (activate), NULL);
+  status = g_application_run (G_APPLICATION (gApp), argc, argv);
+  g_object_unref (gApp);
 
   return status;
 }
