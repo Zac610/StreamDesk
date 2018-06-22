@@ -126,6 +126,7 @@ static void realize_cb(GtkWidget *widget)
 
 static void playPlaybin()
 {
+	gchar msg[255];
 	GstStateChangeReturn ret = gst_element_set_state (gPlaybin, GST_STATE_PLAYING);
 	if (ret == GST_STATE_CHANGE_FAILURE)
 	{
@@ -135,16 +136,16 @@ static void playPlaybin()
 		gchar *strval;
 		g_object_get(gPlaybin, "uri", &strval, NULL);
 		
-		GtkWidget* dialog = gtk_message_dialog_new (gMainWindow, GTK_DIALOG_MODAL, GTK_MESSAGE_WARNING, GTK_BUTTONS_CLOSE, "Stream not found:\n%s", strval);
-		gtk_dialog_run(GTK_DIALOG (dialog));
-		gtk_widget_destroy (dialog);
+		sprintf(msg, "Error on stream\nStream not found\n%s", strval);
 	}
 	else
 	{
 		gIsPlaying = TRUE;
 		gIsNewStream = TRUE;
 		app_indicator_set_status (gIndicator, APP_INDICATOR_STATUS_ACTIVE);
+		sprintf(msg, "%s", gLastStream);
 	}
+	issueNotification(msg);
 }
 
 
@@ -397,8 +398,6 @@ static void cbMotionEvent(GtkWidget *widget, GdkEvent *event)
 		if (calcH > windowH)
 			calcH = windowH;
 
-//		g_print("currentW: %f, currentH:%f, windowW: %f, windowH: %f, calcW: %f, calcH: %f\n", currentW, currentH, windowW, windowH, calcW, calcH);
-		
 		GdkWindow *window = gtk_widget_get_window (widget);
 		gdk_window_resize(window, calcW, calcH);
 	}
@@ -472,8 +471,11 @@ static gboolean draw_cb(GtkWidget *widget, cairo_t *cr)
 {
 	if (gIsPlaying)
 		return TRUE;
-
+		
 	GtkAllocation allocation;
+
+	GdkWindow *gdkWindow = gtk_widget_get_window ((GtkWidget *)gMainWindow);
+	gdk_window_resize(gdkWindow, 100, 100);
 
 	/* Cairo is a 2D graphics library which we use here to clean the video window.
 	 * It is used by GStreamer for other reasons, so it will always be available to us. */
