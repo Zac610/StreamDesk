@@ -41,7 +41,7 @@ enum DragState
 GtkApplication *gApp;
 gboolean gIsPlaying; // TODO: check if can be used state of playbin
 gboolean gIsNewStream;
-gchar gLastStream[255] = ""; // TODO: check if can be used uri of playbin
+gchar gLastStream[1024] = ""; // TODO: check if can be used uri of playbin
 gchar gPlsDir[255] = "";
 gint gxWinInitial, gyWinInitial;
 gint gwWinInitial, ghWinInitial;
@@ -126,7 +126,7 @@ static void realize_cb(GtkWidget *widget)
 
 static void playPlaybin()
 {
-	gchar msg[255];
+	gchar msg[1024];
 	GstStateChangeReturn ret = gst_element_set_state (gPlaybin, GST_STATE_PLAYING);
 	if (ret == GST_STATE_CHANGE_FAILURE)
 	{
@@ -136,7 +136,7 @@ static void playPlaybin()
 		gchar *strval;
 		g_object_get(gPlaybin, "uri", &strval, NULL);
 		
-		sprintf(msg, "Error on stream\nStream not found\n%s", strval);
+		sprintf(msg, "Error on stream\nStream not valid\n%s", strval);
 	}
 	else
 	{
@@ -225,7 +225,25 @@ void playLastStream()
 {
 	if (gIsPlaying)
 		gst_element_set_state (gPlaybin, GST_STATE_READY);
-	g_object_set (gPlaybin, "uri", gLastStream, NULL);
+
+	// Check if stream to play is a youtube stream
+	if (g_strrstr(gLastStream, "youtube") != NULL)
+	{
+		gchar *urlStream = NULL;
+		gchar cmdLine[1024];
+		sprintf(cmdLine, "youtube-dl -g %s", gLastStream);
+
+//		g_print("[cmdLine]%s\n", cmdLine);
+		g_spawn_command_line_sync(cmdLine, &urlStream, NULL, NULL, NULL);
+//		g_print("[urlStream]%s\n", urlStream);
+
+		g_object_set (gPlaybin, "uri", urlStream, NULL);
+
+		g_free(urlStream);
+	}
+	else
+		g_object_set (gPlaybin, "uri", gLastStream, NULL);
+	
 	playPlaybin();
 }
 
@@ -741,7 +759,7 @@ static void activate(GApplication *app, gpointer user_data)
 
 	g_object_set (gPlaybin, "uri", gLastStream, NULL);
 	if (gIsPlaying)
-		playPlaybin();
+		playLastStream();
 
 	gtk_main ();
 
