@@ -2,11 +2,17 @@
 
 typedef struct
 {
+	GString *name;
+	GPtrArray *items;
+} PlayList;
+
+typedef struct
+{
 	GString *title;
 	GString *url;
 } PlayItem;
 
-GPtrArray *listPls(const gchar *plsDir);
+GPtrArray *loadAllPls(const gchar *plsDir);
 
 GPtrArray *loadPls(const gchar *plsDir, const gchar *plsName);
 void savePls(const gchar *plsName, GPtrArray *plsList);

@@ -465,20 +465,12 @@ void playItemAdd(PlayItem *playItem, gpointer user_data)
 }
 
 
-GPtrArray *addPlsSubMenu(const gchar* plsDir, const gchar* plsName, GtkWidget *streamsSubMenu)
+void playListAdd(PlayList *pls, gpointer user_data)
 {
-	GPtrArray *playItemList = loadPls(plsDir, plsName);
 	GtkWidget *localSubMenu = gtk_menu_new();
-	GtkWidget *localMenuItem = addMenuItem(plsName, streamsSubMenu, NULL, NULL);
+	GtkWidget *localMenuItem = addMenuItem(pls->name->str, (GtkWidget *)user_data, NULL, NULL);
 	gtk_menu_item_set_submenu( GTK_MENU_ITEM(localMenuItem), localSubMenu);
-	g_ptr_array_foreach(playItemList, (GFunc)playItemAdd, localSubMenu);
-	return playItemList; // used only for the local playlist
-}
-
-
-void playListAdd(GString *plsName, gpointer user_data)
-{
-	addPlsSubMenu(gPlsDir, plsName->str, (GtkWidget *)user_data);
+	g_ptr_array_foreach(pls->items, (GFunc)playItemAdd, localSubMenu);
 }
 
 
@@ -724,11 +716,15 @@ static void activate(GApplication *app, gpointer user_data)
 	
 	// Fills the local submenu
 	sprintf(confFilePath, "%s/%s", g_get_user_config_dir(), APPNAME);
-	gLocalPlayItemList = addPlsSubMenu(confFilePath, "Local", streamsSubMenu);
-
-	GPtrArray *plsList = listPls(gPlsDir);
+	gLocalPlayItemList = loadPls(confFilePath, "Local.pls");
+	GtkWidget *localSubMenu = gtk_menu_new();
+	GtkWidget *localMenuItem = addMenuItem("Cached", streamsSubMenu, NULL, NULL);
+	gtk_menu_item_set_submenu( GTK_MENU_ITEM(localMenuItem), localSubMenu);
+	g_ptr_array_foreach(gLocalPlayItemList, (GFunc)playItemAdd, localSubMenu);
+	
+	// Fills the Playlist submenu
+	GPtrArray *plsList = loadAllPls(gPlsDir);
 	g_ptr_array_foreach(plsList, (GFunc)playListAdd, streamsSubMenu);
-	g_ptr_array_free(plsList, TRUE);
 
 	addMenuItem("Info", gContextualMenu, G_CALLBACK (cbAbout), NULL);	
 	addMenuItem("Quit", gContextualMenu, G_CALLBACK (cbCloseApp), NULL);	
@@ -764,6 +760,7 @@ static void activate(GApplication *app, gpointer user_data)
 	gtk_main ();
 
 	// Free resources
+	g_ptr_array_free(plsList, TRUE);
 	gst_element_set_state (gPlaybin, GST_STATE_NULL);
 	gst_object_unref (gPlaybin);
 //	return 0;
