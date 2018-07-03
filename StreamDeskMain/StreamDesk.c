@@ -723,7 +723,7 @@ static void activate(GApplication *app, gpointer user_data)
 	g_ptr_array_foreach(gLocalPlayItemList, (GFunc)playItemAdd, localSubMenu);
 	
 	// Fills the Playlist submenu
-	GPtrArray *plsList = loadAllPls(gPlsDir);
+	GPtrArray *plsList = loadAllPlaylists(gPlsDir);
 	g_ptr_array_foreach(plsList, (GFunc)playListAdd, streamsSubMenu);
 
 	addMenuItem("Info", gContextualMenu, G_CALLBACK (cbAbout), NULL);	

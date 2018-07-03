@@ -12,7 +12,7 @@ typedef struct
 	GString *url;
 } PlayItem;
 
-GPtrArray *loadAllPls(const gchar *plsDir);
+GPtrArray *loadAllPlaylists(const gchar *plsDir);
 
 GPtrArray *loadPls(const gchar *plsDir, const gchar *plsName);
 void savePls(const gchar *plsName, GPtrArray *plsList);
