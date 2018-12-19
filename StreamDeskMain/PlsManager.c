@@ -36,11 +36,43 @@ GPtrArray *loadPls(const gchar *plsDir, const gchar *plsName)
 		while (id <= numberofentries)
 		{
 			PlayItem *playItem = (PlayItem*)g_new(PlayItem, 1);
+			gchar *getKey;
 			
-			g_sprintf(strTemp, "Title%d", id);
-			playItem->title = g_string_new(g_key_file_get_string(keyFilePls, "playlist", strTemp, NULL));
+			// Get URL field, three cases managed
 			g_sprintf(strTemp, "File%d", id);
-			playItem->url = g_string_new(g_key_file_get_string(keyFilePls, "playlist", strTemp, NULL));
+			getKey = g_key_file_get_string(keyFilePls, "playlist", strTemp, NULL);
+			if (getKey == NULL)
+			{
+				g_sprintf(strTemp, "file%d", id);
+				getKey = g_key_file_get_string(keyFilePls, "playlist", strTemp, NULL);
+				if (getKey == NULL)
+				{
+					g_sprintf(strTemp, "FILE%d", id);
+					getKey = g_key_file_get_string(keyFilePls, "playlist", strTemp, NULL);
+				}
+			}
+			if (getKey == NULL)
+				continue;
+			playItem->url = g_string_new(getKey);
+			
+			// Get Title field, three cases managed
+			g_sprintf(strTemp, "Title%d", id);
+			getKey = g_key_file_get_string(keyFilePls, "playlist", strTemp, NULL);
+			if (getKey == NULL)
+			{
+				g_sprintf(strTemp, "title%d", id);
+				getKey = g_key_file_get_string(keyFilePls, "playlist", strTemp, NULL);
+				if (getKey == NULL)
+				{
+					g_sprintf(strTemp, "TITLE%d", id);
+					getKey = g_key_file_get_string(keyFilePls, "playlist", strTemp, NULL);
+				}
+			}
+			if (getKey == NULL)
+				playItem->title = playItem->url;
+			else
+				playItem->title = g_string_new(getKey);
+			
 			g_ptr_array_add(retVal, (gpointer)playItem);
 			id++;
 		}
@@ -93,13 +125,9 @@ void savePls(const gchar *plsName, GPtrArray *plsList)
 //	g_ptr_array_free(plsData, TRUE);
 //}
 
-
-GPtrArray *loadM3u(const gchar *plsDir, const gchar *plsName)
+GPtrArray *loadM3uGfile(GFile *m3uFile)
 {
 	GPtrArray *retVal = g_ptr_array_new();
-	gchar strTemp[255];
-	g_sprintf(strTemp, "%s/%s", plsDir, plsName);
-	GFile *m3uFile = g_file_new_for_path(strTemp);
 	GFileInputStream *fis = g_file_read(m3uFile, NULL, NULL);
 	
 	if (fis != NULL)
@@ -122,6 +150,13 @@ GPtrArray *loadM3u(const gchar *plsDir, const gchar *plsName)
 					g_ptr_array_add(retVal, (gpointer)playItem);
 				}
 			}
+			else
+			{
+				PlayItem *playItem = (PlayItem*)g_new(PlayItem, 1);
+				playItem->title = g_string_new(readLine);
+				playItem->url = g_string_new(readLine);
+				g_ptr_array_add(retVal, (gpointer)playItem);
+			}
 
 			readLine = g_data_input_stream_read_line(dis, &numReadChar, NULL, NULL);
 		}
@@ -132,6 +167,62 @@ GPtrArray *loadM3u(const gchar *plsDir, const gchar *plsName)
 	g_object_unref(m3uFile);
 
 	return retVal;
+
+}
+
+
+//StreamType checkStreamType(const gchar *streamUrl)
+//{
+//	StreamType retVal = E_OTHER;
+//	
+//	g_print("Analizzo: %s\n", streamUrl);
+//	
+//	if (g_str_has_prefix(streamUrl, "file:"))
+//		retVal = E_FILE;
+//	else if (g_str_has_prefix(streamUrl, "http")) // including https
+//	{		
+//		GFile *m3uUrl = g_file_new_for_uri(streamUrl);
+//		GFileInputStream *fis = g_file_read(m3uUrl, NULL, NULL);
+//		
+//		if (fis != NULL)
+//		{
+//			GDataInputStream *dis = g_data_input_stream_new((GInputStream *)fis);
+//			gsize numReadChar;
+//			char *readLine = g_data_input_stream_read_line(dis, &numReadChar, NULL, NULL);
+//			if (readLine != NULL)
+//			{
+//				if (g_str_has_prefix(readLine, "[Playlist]"))
+//					retVal = E_PLS;
+//				else if (g_str_has_prefix(readLine, "#EXTM3U"))
+//					retVal = E_M3U;
+//				else
+//					g_print("* Unknown stream format: %s\n", readLine); // only for console debug
+//			}
+//			g_object_unref(fis);
+//		}
+//	}
+//	else
+//		g_print("* Unknown stream type: %s\n", streamUrl); // only for console debug
+//
+//	return retVal;
+//}
+
+
+GPtrArray *loadM3uFromFile(const gchar *plsDir, const gchar *plsName)
+{
+	gchar strTemp[255];
+	g_sprintf(strTemp, "%s/%s", plsDir, plsName);
+	GFile *m3uFile = g_file_new_for_path(strTemp);
+	return loadM3uGfile(m3uFile);
+}
+
+
+GPtrArray *loadM3uFromHttp(const gchar *httpUrl)
+{
+	// playing http streams may issue the following error in console:
+	// libsoup-CRITICAL **: soup_message_headers_append: assertion 'strpbrk (value, "\r\n") == NULL' failed
+	GFile *m3uUrl = g_file_new_for_uri(httpUrl);
+	return loadM3uGfile(m3uUrl);
 }
 
 
@@ -165,13 +256,14 @@ GPtrArray *loadAllPlaylists(const gchar *plsDir)
 		}
 		else if (g_str_has_suffix (filename, ".m3u") || g_str_has_suffix (filename, ".m3u8")) // Case sensitive?
 		{
-			gint suffixLen = 3;
+			gint suffixLen = strlen(".m3u");
 			if (g_str_has_suffix (filename, ".m3u8"))
-				suffixLen = 4;
+				suffixLen = strlen(".m3u8");
 				
 			PlayList *playList = (PlayList*)g_new(PlayList, 1);
 			playList->name = g_string_new_len(filename, strlen(filename)-suffixLen);
-			playList->items = loadM3u(plsDir, filename);
+			playList->items = loadM3uFromFile(plsDir, filename);
+//			playList->items = loadM3uFromHttp("http://pastebin.com/raw/8GpCCkhf");
 			g_ptr_array_add(retVal, (gpointer)playList);
 		}
 		

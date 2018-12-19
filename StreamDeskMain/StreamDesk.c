@@ -226,6 +226,8 @@ void playLastStream()
 	if (gIsPlaying)
 		gst_element_set_state (gPlaybin, GST_STATE_READY);
 
+	//checkStreamType(gLastStream);
+
 	// Check if stream to play is a youtube stream
 	if (g_strrstr(gLastStream, "youtube") != NULL)
 	{
@@ -272,6 +274,7 @@ void cbOpenUrl(GtkMenuItem *menuitem)
 	if (response == GTK_RESPONSE_ACCEPT)
 	{
 		strcpy(gLastStream, gtk_entry_get_text(GTK_ENTRY(entry)));
+
 		playLastStream();
 		
 		// add stream in local playlist
