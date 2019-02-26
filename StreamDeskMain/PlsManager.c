@@ -69,7 +69,7 @@ GPtrArray *loadPls(const gchar *plsDir, const gchar *plsName)
 				}
 			}
 			if (getKey == NULL)
-				playItem->title = playItem->url;
+				playItem->title = g_string_new(playItem->url->str);
 			else
 				playItem->title = g_string_new(getKey);
 			
@@ -263,7 +263,7 @@ GPtrArray *loadAllPlaylists(const gchar *plsDir)
 			PlayList *playList = (PlayList*)g_new(PlayList, 1);
 			playList->name = g_string_new_len(filename, strlen(filename)-suffixLen);
 			playList->items = loadM3uFromFile(plsDir, filename);
-//			playList->items = loadM3uFromHttp("http://pastebin.com/raw/8GpCCkhf");
+			//playList->items = loadM3uFromHttp("http://pastebin.com/raw/8GpCCkhf");
 			g_ptr_array_add(retVal, (gpointer)playList);
 		}
 		
